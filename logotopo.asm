@@ -101,43 +101,60 @@ l94a9h:
 	pop bc			;94af
 	ret			    ;94b0
 
-sub_94b1h:
+; ***************
+; * Move object *
+; ***************
+MOVE_OBJECT:
+
+; [STORE_2] <-- 2*P - 26888
 AUTOMODIF_INST_2:
-	ld hl,0000dh		;94b1	21 0d 00 	! . . 
-	add hl,hl			;94b4	29 	) 
-	ld de,l96f8h		;94b5	11 f8 96 	. . . 
-	add hl,de			;94b8	19 	. 
-	ld (l96f6h),hl		;94b9	22 f6 96 	" . . 
+	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
+	add hl,hl			;94b4
+	ld de, -26888		;94b5
+	add hl,de			;94b8
+	ld (STORE_2),hl		;94b9
 
-AUTOMODIF_INST_1:    
-	ld hl,0000eh		;94bc	21 0e 00 	! . .
+AUTOMODIF_INST_1:
+    ; HL <-- 2*Q - 26988
+	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
 
-	add hl,hl			;94bf	29 	) 
-	ld de,l9694h		;94c0	11 94 96 	. . . 
-	add hl,de			;94c3	19 	. 
-	ld e,(hl)			;94c4	5e 	^ 
-	inc hl			;94c5	23 	# 
-	ld d,(hl)			;94c6	56 	V 
-	ld hl,l9728h		;94c7	21 28 97 	! ( . 
-	add hl,de			;94ca	19 	. 
-	ld a,(hl)			;94cb	7e 	~ 
-	ld (094f1h),a		;94cc	32 f1 94 	2 . . 
+	add hl,hl			;94bf
+	ld de, -26988		;94c0
+	add hl,de			;94c3
+
+    ; DE <-- [2*Q - 26988]
+	ld e,(hl)			;94c4
+	inc hl			    ;94c5
+	ld d,(hl)			;94c6
+
+	; HL = [2*Q - 26988] - 26840
+    ld hl, -26840		;94c7
+	add hl,de			;94ca
+    
+    ; A = [[2*Q - 26988] - 26840]
+	ld a,(hl)			;94cb
+	ld (094f1h),a		;94cc
+
 	inc hl			;94cf	23 	# 
 	ld a,(hl)			;94d0	7e 	~ 
 	ld (094ddh),a		;94d1	32 dd 94 	2 . . 
+
 	inc hl			;94d4	23 	# 
 	ld (l96f4h),hl		;94d5	22 f4 96 	" . . 
-	ld ix,(l96f6h)		;94d8	dd 2a f6 96 	. * . . 
+
+	ld ix,(STORE_2)		;94d8	dd 2a f6 96 	. * . . 
 	ld c,005h		;94dc	0e 05 	. . 
 l94deh:
 	ld e,(ix+000h)		;94de	dd 5e 00 	. ^ . 
 	inc ix		;94e1	dd 23 	. # 
 	ld d,(ix+000h)		;94e3	dd 56 00 	. V . 
 	inc ix		;94e6	dd 23 	. # 
+
+AUTOMODIF_INST_3:
 	ld hl,000b0h		;94e8	21 b0 00 	! . . 
 	add hl,de			;94eb	19 	. 
 	ld de,(l96f4h)		;94ec	ed 5b f4 96 	. [ . . 
-	ld b,018h		;94f0	06 18 	. . 
+	ld b,018h		    ;94f0	06 18 	. . 
 l94f2h:
 	ld a,(de)			;94f2	1a 	. 
 
@@ -161,7 +178,7 @@ ROTATE_SOFT:
 	ld a,00fh		;950b	3e 0f 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;950d	32 b2 94 	2 . . 
 	ld a,078h		;9510	3e 78 	> x 
-	ld (094e9h),a		;9512	32 e9 94 	2 . . 
+	ld (AUTOMODIF_INST_3 + 1),a		;9512	32 e9 94 	2 . . 
     
     ; Write a NOP in the auto-modificable code
 	xor a			        ;9515
@@ -179,28 +196,28 @@ l9527h:
 	halt			;9527	76 	v 
 	djnz l9527h		;9528	10 fd 	. . 
 	di			;952a	f3 	. 
-	call sub_94b1h		;952b	cd b1 94 	. . . 
+	call MOVE_OBJECT		;952b	cd b1 94 	. . . 
 	pop hl			;952e	e1 	. 
 	inc hl			;952f	23 	# 
 	jr l951ch		;9530	18 ea 	. . 
 
 MOVE_T:
-	ld a,007h		                ;9532
+	ld a, 7	    	                ;9532
 	ld (AUTOMODIF_INST_1 + 1),a		;9534
 
-	ld a,006h		                ;9537
-	ld (AUTOMODIF_INST_2 + 1),a		        ;9539
+	ld a, 6 		                ;9537
+	ld (AUTOMODIF_INST_2 + 1),a		;9539
 
-	ld a,000h		                ;953c
+	ld a, 0 		                ;953c
 l953eh:
-	cp 018h		                    ;953e
+	cp NUM_ROWS	                    ;953e
 	ret z			                ;9540
 
-	ld (094e9h),a		            ;9541
+	ld (AUTOMODIF_INST_3 + 1),a		;9541
 	push af			                ;9544
-	call sub_94b1h		            ;9545
+	call MOVE_OBJECT		            ;9545
 	pop af			                ;9548
-	add a,008h		                ;9549
+	add a, 8		                ;9549
 	jr l953eh		                ;954b
 
 MOVE_P:
@@ -212,17 +229,17 @@ MOVE_P:
 l9559h:
 	cp 050h		;9559	fe 50 	. P 
 	ret z			;955b	c8 	. 
-	ld (094e9h),a		;955c	32 e9 94 	2 . . 
+	ld (AUTOMODIF_INST_3 + 1),a		;955c	32 e9 94 	2 . . 
 	push af			;955f	f5 	. 
 	ei			;9560	fb 	. 
 	halt			;9561	76 	v 
 	di			;9562	f3 	. 
-	call sub_94b1h		;9563	cd b1 94 	. . . 
+	call MOVE_OBJECT		;9563	cd b1 94 	. . . 
 	pop af			;9566	f1 	. 
 	sub 008h		;9567	d6 08 	. . 
 	jr l9559h		;9569	18 ee 	. . 
-FALL_O:
 
+FALL_O:
     ; Write a OR (HL) in the auto-modificable code
 	ld a,0b6h		        ;956b Opcode for OR (HL)
 	ld (AUTOMODIF_CODE),a	;956d
@@ -230,19 +247,19 @@ FALL_O:
 	ld a,008h		;9570	3e 08 	> . 
 	ld (AUTOMODIF_INST_1 + 1),a		;9572	32 bd 94 	2 . . 
 	ld a,038h		;9575	3e 38 	> 8 
-	ld (094e9h),a		;9577	32 e9 94 	2 . . 
+	ld (AUTOMODIF_INST_3 + 1),a		;9577	32 e9 94 	2 . . 
 	ld a,000h		;957a	3e 00 	> . 
 l957ch:
 	cp 007h		;957c	fe 07 	. . 
 	jr z,l958bh		;957e	28 0b 	( . 
 	ld (AUTOMODIF_INST_2 + 1),a		;9580	32 b2 94 	2 . . 
 	push af			;9583	f5 	. 
-	call sub_94b1h		;9584	cd b1 94 	. . . 
+	call MOVE_OBJECT		;9584	cd b1 94 	. . . 
 	pop af			;9587	f1 	. 
 	inc a			;9588	3c 	< 
 	jr l957ch		;9589	18 f1 	. . 
 l958bh:
-	jp sub_94b1h		;958b	c3 b1 94 	. . . 
+	jp MOVE_OBJECT		;958b	c3 b1 94 	. . . 
 JUMP_O:
 	ld a,00ah		;958e	3e 0a 	> . 
 	ld (AUTOMODIF_INST_1 + 1),a		;9590	32 bd 94 	2 . . 
@@ -252,16 +269,16 @@ l9596h:
 	cp 0ffh		;9597	fe ff 	. . 
 	jr z,l95abh		;9599	28 10 	( . 
 	inc hl			;959b	23 	# 
-	ld (094e9h),a		;959c	32 e9 94 	2 . . 
+	ld (AUTOMODIF_INST_3 + 1),a		;959c	32 e9 94 	2 . . 
 	ld a,(hl)			;959f	7e 	~ 
 	inc hl			;95a0	23 	# 
 	ld (AUTOMODIF_INST_2 + 1),a		;95a1	32 b2 94 	2 . . 
 	push hl			;95a4	e5 	. 
-	call sub_94b1h		;95a5	cd b1 94 	. . . 
+	call MOVE_OBJECT		;95a5	cd b1 94 	. . . 
 	pop hl			;95a8	e1 	. 
 	jr l9596h		;95a9	18 eb 	. . 
 l95abh:
-	jp sub_94b1h		;95ab	c3 b1 94 	. . . 
+	jp MOVE_OBJECT		;95ab	c3 b1 94 	. . . 
 NICE_GLINT:
 	ld hl,l96e9h		;95ae	21 e9 96 	! . . 
 l95b1h:
@@ -271,7 +288,7 @@ l95b1h:
 	push hl			;95b5	e5 	. 
 	ld (AUTOMODIF_INST_1 + 1),a		;95b6	32 bd 94 	2 . . 
 	ld a,0b0h		;95b9	3e b0 	> . 
-	ld (094e9h),a		;95bb	32 e9 94 	2 . . 
+	ld (AUTOMODIF_INST_3 + 1),a		;95bb	32 e9 94 	2 . . 
 	ld a,00dh		;95be	3e 0d 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;95c0	32 b2 94 	2 . . 
 	ei			;95c3	fb 	. 
@@ -280,7 +297,7 @@ l95c6h:
 	halt			;95c6	76 	v 
 	djnz l95c6h		;95c7	10 fd 	. . 
 	di			;95c9	f3 	. 
-	call sub_94b1h		;95ca	cd b1 94 	. . . 
+	call MOVE_OBJECT		;95ca	cd b1 94 	. . . 
 	pop hl			;95cd	e1 	. 
 	inc hl			;95ce	23 	# 
 	jr l95b1h		;95cf	18 e0 	. . 
@@ -498,7 +515,7 @@ l96e9h:
 	nop			;96f3	00 	. 
 l96f4h:
 	ld c,0a5h		;96f4	0e a5 	. . 
-l96f6h:
+STORE_2:
 	ld (de),a			;96f6	12 	. 
 	sub a			;96f7	97 	. 
 l96f8h:
