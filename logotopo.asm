@@ -24,7 +24,7 @@
     
     ; Length of a line in the "SOFT" text (8 chars)
     COLOR_TABLE_SOFT_LINE_LENGTH: equ 8*8
-
+    
 	jp START		;9470  Jump to start
 
 ; *******************************************************
@@ -106,32 +106,33 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [STORE_2] <-- 2*P - 26888
+; [STORE_2] <-- 0x96f8 + 2*P
 AUTOMODIF_INST_2:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
-	ld de, -26888		;94b5
+	ld de, 0x96f8		;94b5
 	add hl,de			;94b8
 	ld (STORE_2),hl		;94b9
 
+; This seems to be related to which object it moves
 AUTOMODIF_INST_1:
-    ; HL <-- 2*Q - 26988
+    ; HL <-- TABLE_1 + 2*Q
 	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
 
 	add hl,hl			;94bf
-	ld de, -26988		;94c0
+	ld de, TABLE_1		;94c0
 	add hl,de			;94c3
 
-    ; DE <-- [2*Q - 26988]
+    ; DE <-- [TABLE_1 + 2*Q]
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
 
-	; HL = [2*Q - 26988] - 26840
-    ld hl, -26840		;94c7
+	; HL = [TABLE_1 + 2*Q] + TABLE_2
+    ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
     
-    ; A = [[2*Q - 26988] - 26840]
+    ; A = [[TABLE_1 + 2*Q] + TABLE_2]
 	ld a,(hl)			;94cb
 	ld (094f1h),a		;94cc
 
@@ -144,6 +145,8 @@ AUTOMODIF_INST_1:
 
 	ld ix,(STORE_2)		;94d8	dd 2a f6 96 	. * . . 
 	ld c,005h		;94dc	0e 05 	. . 
+
+
 l94deh:
 	ld e,(ix+000h)		;94de	dd 5e 00 	. ^ . 
 	inc ix		;94e1	dd 23 	. # 
@@ -161,7 +164,6 @@ l94f2h:
 ; It can be a 0: NOP or a 0xB6: OR (HL)
 AUTOMODIF_CODE:
 	nop			    ;94f3
-
 	inc de			;94f4	13 	. 
 	res 7,h		;94f5	cb bc 	. . 
 	res 6,h		;94f7	cb b4 	. . 
@@ -174,6 +176,7 @@ AUTOMODIF_CODE:
 	dec c			;9507	0d 	. 
 	jr nz,l94deh		;9508	20 d4 	  . 
 	ret			;950a	c9 	. 
+
 ROTATE_SOFT:
 	ld a,00fh		;950b	3e 0f 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;950d	32 b2 94 	2 . . 
@@ -430,7 +433,8 @@ sub_9688h:
 	ld de,0c000h		;968b	11 00 c0 	. . . 
 	ld bc,01800h		;968e	01 00 18 	. . . 
 	jp 00059h		;9691	c3 59 00 	. Y . 
-l9694h:
+
+TABLE_1:
 	nop			;9694	00 	. 
 	nop			;9695	00 	. 
 	add a,d			;9696	82 	. 
@@ -552,7 +556,8 @@ l96f8h:
 	nop			;9724	00 	. 
 	sub 000h		;9725	d6 00 	. . 
 	rst 10h			;9727	d7 	. 
-l9728h:
+
+TABLE_2:
 	ld b,b			;9728	40 	@ 
 	ld (bc),a			;9729	02 	. 
 	nop			;972a	00 	. 
