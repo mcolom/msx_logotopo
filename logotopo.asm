@@ -12,6 +12,7 @@
     WRTVRM: equ 0x004d
     COLOR_TABLE: equ 0x2000
     COLOR_RED_BLACK: equ 0x81
+    COLOR_WHITE_BLACK: equ 0xf1
     COLOR_WHITE_TRANSPARENT: equ 0xf0
     
     ; Position in the color table of the "S" of the "SOFT" text
@@ -22,38 +23,63 @@
 
 	jp START		;9470  Jump to start
 
-MOVE_SOFT_REFLECTION:
+REFLECTION_ANIMATION:
 	ld hl, COLOR_TABLE_POS_S	;9473
 	ld de, COLOR_TABLE_POS_S + COLOR_TABLE_SOFT_LINE_LENGTH	;9476
-	ld bc,000f7h		        ;9479
+    
+    ; In BC it stores the offset that we need to add to HL (a pointer in
+    ; the CT for a particular tile) to be in the tile just below.
+    ; In fact, it's subtracting 1 to the result, resulting in the
+    ; last line of the tile on the left. Is this a bug?
+    ;
+    ; 32 columns (we subtract 1 since after processing the previous
+    ; tile the pointer has been already incremented), each tile being
+    ; 8 bytes of color.
+	ld bc, (32 - 1)*8 - 1       ;9479
 l947ch:
-	and a			;947c	a7 	. 
-	sbc hl,de		;947d	ed 52 	. R 
-	ret z			;947f	c8 	. 
-	add hl,de			;9480	19 	. 
-	ld a,081h		;9481	3e 81 	> . 
-	call COPY_8_BYTES_TO_VRAM		;9483	cd a6 94 	. . . 
-	push hl			;9486	e5 	. 
-	add hl,bc			;9487	09 	. 
-	ld a,081h		;9488	3e 81 	> . 
-	call COPY_8_BYTES_TO_VRAM		;948a	cd a6 94 	. . . 
-	pop hl			;948d	e1 	. 
-	push hl			;948e	e5 	. 
-	ld a,0f1h		;948f	3e f1 	> . 
-	call COPY_8_BYTES_TO_VRAM		;9491	cd a6 94 	. . . 
-	add hl,bc			;9494	09 	. 
-	ld a,0f1h		;9495	3e f1 	> . 
-	call COPY_8_BYTES_TO_VRAM		;9497	cd a6 94 	. . . 
-	pop hl			;949a	e1 	. 
-	ei			;949b	fb 	. 
-	push bc			;949c	c5 	. 
-	ld b,003h		;949d	06 03 	. . 
+	
+    ; Get out if HL == DE (it has arrive at the end of line)
+    and a			;947c
+	sbc hl,de		;947d
+	ret z			;947f
+    
+    ; Not at the end of the line
+	add hl,de		;9480 Fix subtraction
+
+    ; Recover normal color, red over black. Upper line.
+	ld a, COLOR_RED_BLACK		;9481
+	call COPY_8_BYTES_TO_VRAM	;9483
+
+    ; Recover normal color, red over black. Lower line.
+	push hl			            ;9486
+	add hl,bc			        ;9487
+	ld a, COLOR_RED_BLACK	    ;9488
+	call COPY_8_BYTES_TO_VRAM	;948a
+	pop hl			            ;948d
+    
+    ; Set white reflection color. Upper line.
+	push hl			            ;948e
+	ld a, COLOR_WHITE_BLACK		;948f
+	call COPY_8_BYTES_TO_VRAM	;9491
+    
+    ; Set white reflection color. Lower line.
+	add hl,bc			        ;9494
+	ld a,COLOR_WHITE_BLACK      ;9495
+	call COPY_8_BYTES_TO_VRAM	;9497
+	pop hl			            ;949a
+
+    ; Wait for 3 vertical retraces
+    ei			                ;949b
+	push bc			            ;949c
+	ld b,003h		            ;949d
 l949fh:
-	halt			;949f	76 	v 
-	djnz l949fh		;94a0	10 fd 	. . 
-	pop bc			;94a2	c1 	. 
-	di			;94a3	f3 	. 
-	jr l947ch		;94a4	18 d6 	. . 
+	halt			            ;949f
+	djnz l949fh		            ;94a0
+	pop bc			            ;94a2
+
+	di			                ;94a3
+    ; Loop until the whole logo has been walked through
+	jr l947ch		            ;94a4
 
 ; ********************************************
 ; * Write value A into the VRAM's address HL *
@@ -264,7 +290,7 @@ START:
 	call ROTATE_SOFT	;95f1
 	call ROTATE_SOFT	;95f4
 	call ROTATE_SOFT	;95f7
-	call MOVE_SOFT_REFLECTION	;95fa
+	call REFLECTION_ANIMATION	;95fa
 	call NICE_GLINT	;95fd
 	ei			    ;9600
 	ret			    ;9601
