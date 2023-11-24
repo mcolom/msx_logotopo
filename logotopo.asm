@@ -10,16 +10,19 @@
 	org	09470h
     
     WRTVRM: equ 0x004d
-    CHARACTERS_COLOUR_TABLE: equ 0x2000
+    COLOR_TABLE: equ 0x2000
     COLOR_RED_BLACK: equ 0x81
     COLOR_WHITE_TRANSPARENT: equ 0xf0
+    
+    ; Position in the color table of the "S" of the "SOFT" text
+    COLOR_TABLE_POS_S: equ COLOR_TABLE + 0xf78
 
 	jp START		;9470  Jump to start
 
 MOVE_SOFT_REFLECTION:
-	ld hl,02f78h		;9473	21 78 2f 	! x / 
-	ld de,02fb8h		;9476	11 b8 2f 	. . / 
-	ld bc,000f7h		;9479	01 f7 00 	. . . 
+	ld hl, COLOR_TABLE_POS_S	;9473
+	ld de, COLOR_TABLE + 0xfb8	;9476
+	ld bc,000f7h		        ;9479
 l947ch:
 	and a			;947c	a7 	. 
 	sbc hl,de		;947d	ed 52 	. R 
@@ -49,6 +52,9 @@ l949fh:
 	di			;94a3	f3 	. 
 	jr l947ch		;94a4	18 d6 	. . 
 
+; ********************************************
+; * Write value A into the VRAM's address HL *
+; ********************************************
 COPY_8_BYTES_TO_VRAM:
 	push bc			;94a6
 	ld b,008h		;94a7
@@ -262,7 +268,7 @@ START:
 
 ; Set the Characters Colour Table
 RESET_CGT:
-	ld hl,CHARACTERS_COLOUR_TABLE	;9602
+	ld hl,COLOR_TABLE	;9602
 	ld bc,6144  		            ;9605 Set 6144 characters
 l9608h:
 	ld a,COLOR_WHITE_TRANSPARENT    ;9608
@@ -275,7 +281,7 @@ l9608h:
 	ret			                    ;9613
 
 sub_9614h:
-	ld hl,CHARACTERS_COLOUR_TABLE + 0xf78	;9614
+	ld hl, COLOR_TABLE_POS_S	;9614
 	ld a,COLOR_RED_BLACK		;9617
     ; Repeat the following 2 times
 	ld c,2  		;9619
