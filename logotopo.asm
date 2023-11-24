@@ -16,12 +16,15 @@
     
     ; Position in the color table of the "S" of the "SOFT" text
     COLOR_TABLE_POS_S: equ COLOR_TABLE + 0xf78
+    
+    ; Length of a line in the "SOFT" text (8 chars)
+    COLOR_TABLE_SOFT_LINE_LENGTH: equ 8*8
 
 	jp START		;9470  Jump to start
 
 MOVE_SOFT_REFLECTION:
 	ld hl, COLOR_TABLE_POS_S	;9473
-	ld de, COLOR_TABLE + 0xfb8	;9476
+	ld de, COLOR_TABLE_POS_S + COLOR_TABLE_SOFT_LINE_LENGTH	;9476
 	ld bc,000f7h		        ;9479
 l947ch:
 	and a			;947c	a7 	. 
