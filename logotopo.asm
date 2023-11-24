@@ -10,6 +10,10 @@
 	org	09470h
     
     WRTVRM: equ 0x004d
+    
+    NUM_COLS: equ 32
+    NUM_ROWS: equ 24
+    
     COLOR_TABLE: equ 0x2000
     COLOR_RED_BLACK: equ 0x81
     COLOR_WHITE_BLACK: equ 0xf1
@@ -23,6 +27,9 @@
 
 	jp START		;9470  Jump to start
 
+; *******************************************************
+; * Animation of the "SOFT" text with light reflections *
+; *******************************************************
 REFLECTION_ANIMATION:
 	ld hl, COLOR_TABLE_POS_S	;9473
 	ld de, COLOR_TABLE_POS_S + COLOR_TABLE_SOFT_LINE_LENGTH	;9476
@@ -35,7 +42,7 @@ REFLECTION_ANIMATION:
     ; 32 columns (we subtract 1 since after processing the previous
     ; tile the pointer has been already incremented), each tile being
     ; 8 bytes of color.
-	ld bc, (32 - 1)*8 - 1       ;9479
+	ld bc, (NUM_COLS - 1)*8 - 1       ;9479
 l947ch:
 	
     ; Get out if HL == DE (it has arrive at the end of line)
@@ -295,10 +302,13 @@ START:
 	ei			    ;9600
 	ret			    ;9601
 
-; Set the Characters Colour Table
+; 
+; ********************************************************************
+; * Reset the Characters Colour Table (CT) to white over transparent *
+; ********************************************************************
 RESET_CGT:
 	ld hl,COLOR_TABLE	;9602
-	ld bc,6144  		            ;9605 Set 6144 characters
+	ld bc, NUM_COLS * NUM_ROWS * 8  ;9605 Number of bytes in the CT
 l9608h:
 	ld a,COLOR_WHITE_TRANSPARENT    ;9608
 	call WRTVRM		                ;960a
