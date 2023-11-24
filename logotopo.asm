@@ -102,12 +102,16 @@ l94a9h:
 	ret			    ;94b0
 
 sub_94b1h:
+AUTOMODIF_INST_2:
 	ld hl,0000dh		;94b1	21 0d 00 	! . . 
 	add hl,hl			;94b4	29 	) 
 	ld de,l96f8h		;94b5	11 f8 96 	. . . 
 	add hl,de			;94b8	19 	. 
 	ld (l96f6h),hl		;94b9	22 f6 96 	" . . 
-	ld hl,0000eh		;94bc	21 0e 00 	! . . $94F3
+
+AUTOMODIF_INST_1:    
+	ld hl,0000eh		;94bc	21 0e 00 	! . .
+
 	add hl,hl			;94bf	29 	) 
 	ld de,l9694h		;94c0	11 94 96 	. . . 
 	add hl,de			;94c3	19 	. 
@@ -155,7 +159,7 @@ AUTOMODIF_CODE:
 	ret			;950a	c9 	. 
 ROTATE_SOFT:
 	ld a,00fh		;950b	3e 0f 	> . 
-	ld (sub_94b1h+1),a		;950d	32 b2 94 	2 . . 
+	ld (AUTOMODIF_INST_2 + 1),a		;950d	32 b2 94 	2 . . 
 	ld a,078h		;9510	3e 78 	> x 
 	ld (094e9h),a		;9512	32 e9 94 	2 . . 
     
@@ -167,7 +171,7 @@ l951ch:
 	ld a,(hl)			;951c	7e 	~ 
 	cp 0ffh		;951d	fe ff 	. . 
 	ret z			;951f	c8 	. 
-	ld (094bdh),a		;9520	32 bd 94 	2 . . 
+	ld (AUTOMODIF_INST_1 + 1),a		;9520	32 bd 94 	2 . . 
 	push hl			;9523	e5 	. 
 	ei			;9524	fb 	. 
 	ld b,002h		;9525	06 02 	. . 
@@ -181,26 +185,29 @@ l9527h:
 	jr l951ch		;9530	18 ea 	. . 
 
 MOVE_T:
-	ld a,007h		;9532	3e 07 	> . 
-	ld (094bdh),a		;9534	32 bd 94 	2 . . 
-	ld a,006h		;9537	3e 06 	> . 
-	ld (sub_94b1h+1),a		;9539	32 b2 94 	2 . . 
-	ld a,000h		;953c	3e 00 	> . 
-l953eh:
-	cp 018h		;953e	fe 18 	. . 
-	ret z			;9540	c8 	. 
+	ld a,007h		                ;9532
+	ld (AUTOMODIF_INST_1 + 1),a		;9534
 
-	ld (094e9h),a		;9541	32 e9 94 	2 . . 
-	push af			;9544	f5 	. 
-	call sub_94b1h		;9545	cd b1 94 	. . . 
-	pop af			;9548	f1 	. 
-	add a,008h		;9549	c6 08 	. . 
-	jr l953eh		;954b	18 f1 	. . 
+	ld a,006h		                ;9537
+	ld (AUTOMODIF_INST_2 + 1),a		        ;9539
+
+	ld a,000h		                ;953c
+l953eh:
+	cp 018h		                    ;953e
+	ret z			                ;9540
+
+	ld (094e9h),a		            ;9541
+	push af			                ;9544
+	call sub_94b1h		            ;9545
+	pop af			                ;9548
+	add a,008h		                ;9549
+	jr l953eh		                ;954b
+
 MOVE_P:
 	ld a,009h		;954d	3e 09 	> . 
-	ld (094bdh),a		;954f	32 bd 94 	2 . . 
+	ld (AUTOMODIF_INST_1 + 1),a		;954f	32 bd 94 	2 . . 
 	ld a,007h		;9552	3e 07 	> . 
-	ld (sub_94b1h+1),a		;9554	32 b2 94 	2 . . 
+	ld (AUTOMODIF_INST_2 + 1),a		;9554	32 b2 94 	2 . . 
 	ld a,090h		;9557	3e 90 	> . 
 l9559h:
 	cp 050h		;9559	fe 50 	. P 
@@ -221,14 +228,14 @@ FALL_O:
 	ld (AUTOMODIF_CODE),a	;956d
 
 	ld a,008h		;9570	3e 08 	> . 
-	ld (094bdh),a		;9572	32 bd 94 	2 . . 
+	ld (AUTOMODIF_INST_1 + 1),a		;9572	32 bd 94 	2 . . 
 	ld a,038h		;9575	3e 38 	> 8 
 	ld (094e9h),a		;9577	32 e9 94 	2 . . 
 	ld a,000h		;957a	3e 00 	> . 
 l957ch:
 	cp 007h		;957c	fe 07 	. . 
 	jr z,l958bh		;957e	28 0b 	( . 
-	ld (sub_94b1h+1),a		;9580	32 b2 94 	2 . . 
+	ld (AUTOMODIF_INST_2 + 1),a		;9580	32 b2 94 	2 . . 
 	push af			;9583	f5 	. 
 	call sub_94b1h		;9584	cd b1 94 	. . . 
 	pop af			;9587	f1 	. 
@@ -238,7 +245,7 @@ l958bh:
 	jp sub_94b1h		;958b	c3 b1 94 	. . . 
 JUMP_O:
 	ld a,00ah		;958e	3e 0a 	> . 
-	ld (094bdh),a		;9590	32 bd 94 	2 . . 
+	ld (AUTOMODIF_INST_1 + 1),a		;9590	32 bd 94 	2 . . 
 	ld hl,l96cch		;9593	21 cc 96 	! . . 
 l9596h:
 	ld a,(hl)			;9596	7e 	~ 
@@ -248,7 +255,7 @@ l9596h:
 	ld (094e9h),a		;959c	32 e9 94 	2 . . 
 	ld a,(hl)			;959f	7e 	~ 
 	inc hl			;95a0	23 	# 
-	ld (sub_94b1h+1),a		;95a1	32 b2 94 	2 . . 
+	ld (AUTOMODIF_INST_2 + 1),a		;95a1	32 b2 94 	2 . . 
 	push hl			;95a4	e5 	. 
 	call sub_94b1h		;95a5	cd b1 94 	. . . 
 	pop hl			;95a8	e1 	. 
@@ -262,11 +269,11 @@ l95b1h:
 	cp 0ffh		;95b2	fe ff 	. . 
 	ret z			;95b4	c8 	. 
 	push hl			;95b5	e5 	. 
-	ld (094bdh),a		;95b6	32 bd 94 	2 . . 
+	ld (AUTOMODIF_INST_1 + 1),a		;95b6	32 bd 94 	2 . . 
 	ld a,0b0h		;95b9	3e b0 	> . 
 	ld (094e9h),a		;95bb	32 e9 94 	2 . . 
 	ld a,00dh		;95be	3e 0d 	> . 
-	ld (sub_94b1h+1),a		;95c0	32 b2 94 	2 . . 
+	ld (AUTOMODIF_INST_2 + 1),a		;95c0	32 b2 94 	2 . . 
 	ei			;95c3	fb 	. 
 	ld b,004h		;95c4	06 04 	. . 
 l95c6h:
