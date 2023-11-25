@@ -130,26 +130,35 @@ AUTOMODIF_INST_1:
 	ld d,(hl)			;94c6
     ; Ex: DE = 0x038E
 
-	; D2 = [D1] + TABLE_2
+    ; Obtain pattern stuff
+	; D2 = [D1] + TABLE_2 = TABLE_2[TABLE_1[2*Q]]
     ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
     ; Ex: HL = 0x9AB6
     
-    ; A = [D2]
-	ld a,(hl)			;94cb Ex: A=48
-	ld (AUTOMODIF_INST_4 + 1),a		;94cc
+    ; Explanation.
+    ; First it obtains the address D1 = TABLE_1[2*Q]
+    ; And it performs a second indirection: D2 = TABLE_2[D1] = TABLE_2[TABLE_1[2*Q]]
+    
+    ; Obtain the number of tile lines to fill each char row
+    ; A = [D2] = TABLE_2[TABLE_1[2*Q]]
+	ld a,(hl)			                                ;94cb Ex: A=48
+	ld (AUTOMODIF_TILE_LINES_PER_CHAR_ROW + 1),a		;94cc
 
-	inc hl			    ;94cf
-	ld a,(hl)			;94d0 Ex: A=0xB
-	ld (AUTOMODIF_INST_5 + 1),a		;94d1
+    ; Obtain the number of rows (chars) of the object
+	inc hl			                ;94cf
+	ld a,(hl)			            ;94d0 Ex: A=0xB
+	ld (AUTOMODIF_NUM_ROWS + 1),a	;94d1
 
 	inc hl			    ;94d4
-	ld (STORE_3),hl		;94d5
+	ld (TEMP_PATTERNS_ADDRESS),hl
 
 	ld ix,(STORE_2)		;94d8 IX <-- [STORE_2] = TABLE_3 + 2*P. Ex: 0x9704
-AUTOMODIF_INST_5:
-	ld c, 5     		;94dc
 
+
+
+AUTOMODIF_NUM_ROWS:
+	ld c, 5     		;94dc Number of rows (chars) of the object
 
 write_all_tiles:
 	ld e,(ix+000h)		;94de
@@ -158,11 +167,16 @@ write_all_tiles:
 	inc ix		        ;94e6
     ; Ex: DE = 0xC600
 
+; Get the address of the patterns in DE
+; Get the VRAM destination in HL
 AUTOMODIF_INST_3:
 	ld hl,000b0h		;94e8
 	add hl,de			;94eb
-	ld de,(STORE_3)		;94ec Ex: 0x9AB8
-AUTOMODIF_INST_4:
+	ld de,(TEMP_PATTERNS_ADDRESS)		;94ec Ex: 0x9AB8
+
+; Set the number of tile pattern lines that it needs to copy in that char row
+; For example, if B=0x48 (72), then it's 72 / 8 = 9 tiles.
+AUTOMODIF_TILE_LINES_PER_CHAR_ROW:
 	ld b,018h		    ;94f0
 
 ; Draw a line of the object
@@ -171,8 +185,8 @@ draw_tile_line:
 ; It can be a 0: NOP or a 0xB6: OR (HL)
 AUTOMODIF_CODE:
 	nop			    ;94f3
-    ; Ex: DE = 0x9AB9
-    ; Ex: HL = 0xC600
+    ; Ex: DE = 0x9AB8 --> Patterns to draw
+    ; Ex: HL = 0xC600 --> VRAM destination
 	inc de			;94f4
 	res 7,h		    ;94f5
 	res 6,h		    ;94f7
@@ -187,7 +201,7 @@ AUTOMODIF_CODE:
 	set 7,h		    ;94ff
 	djnz draw_tile_line	;9501
 
-	ld (STORE_3),de		    ;9503
+	ld (TEMP_PATTERNS_ADDRESS),de		    ;9503
 	dec c			        ;9507
 	jr nz,write_all_tiles	;9508
 	ret			            ;950a
@@ -449,15 +463,14 @@ sub_9688h:
 	ld bc,01800h		;968e	01 00 18 	. . . 
 	jp 00059h		;9691	c3 59 00 	. Y . 
 
-TABLE_1:; 7: 0x038E
-    
+TABLE_1:
     dw 0x0, 0x82, 0x104, 0x186, 0x208, 0x28a, 0x30c, 0x38e
     dw 0x6a8, 0x7ea, 0x9cc, 0xbfe, 0xc78, 0xcf2, 0xd6c, 0x0101
     dw 0x202, 0x303, 0x404, 0x505, 0x606, 0x505, 0x404, 0x303
     dw 0x202, 0x101, 0x0, 0xffff, 0x630, 0x530, 0x430, 0x438
     dw 0x338, 0x240, 0x248, 0x150, 0x258, 0x260, 0x368, 0x470
     dw 0x570, 0x670, 0xbff, 0xd0c, 0xb0c, 0xd0c, 0xff0e, 0x0
-STORE_3:
+TEMP_PATTERNS_ADDRESS:
 	ld c,0a5h		;96f4
 STORE_2:
 	ld (de),a		;96f6
