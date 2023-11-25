@@ -6,8 +6,6 @@
 
 ; $ z80asm logotopo.asm |shasum a.bin 
 ; 765de5f1a2e6abce2cced1127e7251a57fb9b3d2  a.bin
-
-	org	09470h
     
     WRTVRM: equ 0x4d
     LDIRMV: equ 0x59
@@ -30,6 +28,31 @@
     ; Length of a line in the "SOFT" text (8 chars)
     COLOR_TABLE_SOFT_LINE_LENGTH: equ 8*8
     
+    ; Tables:
+    ; ---------------------------------------------------------------
+    ; TABLE_VRAM_DESTINATION:
+    ;   Indexed by object ID, this table provides pointers to
+    ;   VRAM destinations (positions).
+    ;   It stores the actual pointer corresponding to the current
+    ;   object in OBJ_VRAM_PATTERNS.
+    ;   OBJ_VRAM_PATTERNS <-- TABLE_VRAM_DESTINATION[2*P].
+    ;   The address is still modified by AUTOMODIF_VRAM_DESTINATION to
+    ;   obtain the final VRAM destination in HL.
+    ;
+    
+    ; TABLE_PTR_OBJECT_ATTRIBS and TABLE_OBJECT_ATTRIBS
+    ;   The first table contains pointers indexed by object ID to a
+    ;   second table which contains the attributes of the object.
+    ;   The attributes are:
+    ;       - AUTOMODIF_TILE_LINES_PER_CHAR_ROW
+    ;       - AUTOMODIF_NUM_ROWS
+    ;       - The patterns
+    ;   It's indirected this way:
+    ;   TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]]
+    ;   The patterns in RAM are stored in OBJ_RAM_PATTERNS when the
+    ;   object is drawn.
+    
+    org	09470h
 	jp START		;9470  Jump to start
 
 ; *******************************************************
@@ -111,42 +134,47 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]
+; [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_DESTINATION[2*P]
 AUTOMODIF_VRAM_OBJECT_IDX:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
-	ld de, TABLE_VRAM_PATTERNS		;94b5
+	ld de, TABLE_VRAM_DESTINATION		;94b5
 	add hl,de			;94b8
-	ld (OBJ_VRAM_PATTERNS),hl		;94b9 [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]. Ex: 0x9704
+	ld (OBJ_VRAM_PATTERNS), hl		;94b9 [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_DESTINATION[2*P]. Ex: 0x9704
 
 ; Obtain the table of attributes of the object, according to its index Q
 AUTOMODIF_OBJECT_IDX:
-    ; D1 = HL <-- TABLE_1 + 2*Q
+    ; D1 = HL <-- TABLE_PTR_OBJECT_ATTRIBS + 2*Q
 	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
                         ; Ex: HL=7
 
 	add hl,hl			;94bf
-	ld de, TABLE_1		;94c0
+	ld de, TABLE_PTR_OBJECT_ATTRIBS		;94c0
 	add hl,de			;94c3 Ex: HL = 0x96A2
 
-    ; DE <-- [D1] = TABLE_1[2*Q]
+    ; DE <-- [D1] = TABLE_PTR_OBJECT_ATTRIBS[2*Q]
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
     ; Ex: DE = 0x038E
 
     ; Obtain object attributes
-	; D2 = [D1] + TABLE_2 = TABLE_2[TABLE_1[2*Q]]
-    ld hl, TABLE_2		;94c7
+	; D2 = [D1] + TABLE_OBJECT_ATTRIBS = TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]]
+    ld hl, TABLE_OBJECT_ATTRIBS		;94c7
 	add hl,de			;94ca
     ; Ex: HL = 0x9AB6
     
     ; Explanation.
-    ; First it obtains the address D1 = TABLE_1[2*Q]
-    ; And it performs a second indirection: D2 = TABLE_2[D1] = TABLE_2[TABLE_1[2*Q]]
+    ; First it obtains the address D1 = TABLE_PTR_OBJECT_ATTRIBS[2*Q]
+    ; And it performs a second indirection: D2 = TABLE_OBJECT_ATTRIBS[D1] = TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]]
+    
+    ; In D2 it finds three fields:
+    ; AUTOMODIF_TILE_LINES_PER_CHAR_ROW
+    ; AUTOMODIF_NUM_ROWS
+    ; The patterns
     
     ; Obtain the number of tile lines to fill each char row
-    ; A = [D2] = TABLE_2[TABLE_1[2*Q]]
+    ; A = [D2] = TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]]
 	ld a,(hl)			                                ;94cb Ex: A=48
 	ld (AUTOMODIF_TILE_LINES_PER_CHAR_ROW + 1),a		;94cc
 
@@ -160,13 +188,13 @@ AUTOMODIF_OBJECT_IDX:
 	inc hl			                ;94d4
 	ld (OBJ_RAM_PATTERNS),hl   ; Ex: 0x9AB8
     ; ... to VRAM's OBJ_VRAM_PATTERNS
-	ld ix,(OBJ_VRAM_PATTERNS)		;94d8 IX <-- [OBJ_VRAM_PATTERNS] = TABLE_VRAM_PATTERNS + 2*P. Ex: 0x9704
+	ld ix,(OBJ_VRAM_PATTERNS)		;94d8 IX <-- [OBJ_VRAM_PATTERNS] = TABLE_VRAM_DESTINATION + 2*P. Ex: 0x9704
 
 AUTOMODIF_NUM_ROWS:
 	ld c, 5     		;94dc Number of rows (chars) of the object
 
 write_all_tiles:
-    ; DE <-- TABLE_VRAM_PATTERNS[2*P], the VRAM address
+    ; DE <-- TABLE_VRAM_DESTINATION[2*P], the VRAM address
 	ld e,(ix+000h)		;94de
 	inc ix		        ;94e1
 	ld d,(ix+000h)		;94e3
@@ -230,7 +258,7 @@ ROTATE_SOFT:
 	ld (AUTOMODIF_CODE),a	;9516
 
     ; Draw different rotations according to the object IDX
-	ld hl,TABLE_1 + 15*2    ;9519
+	ld hl,TABLE_PTR_OBJECT_ATTRIBS + 15*2    ;9519
 l951ch:
     ; Read object IDX. Exit if 0xff marker.
 	ld a,(hl)			    ;951c
@@ -349,7 +377,7 @@ l958bh:
 JUMP_O:
 	ld a, 10		                    ;958e
 	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9590
-	ld hl, TABLE_1 + 28*2               ;9593
+	ld hl, TABLE_PTR_OBJECT_ATTRIBS + 28*2               ;9593
 l9596h:
     ; Read value and exit if 0xff
 	ld a,(hl)			                ;9596
@@ -375,7 +403,7 @@ l95abh:
 
 
 NICE_GLINT:
-	ld hl, TABLE_1 + 42*2 + 1           ;95ae
+	ld hl, TABLE_PTR_OBJECT_ATTRIBS + 42*2 + 1           ;95ae
 l95b1h:
 	; Read object IDs until 0xff marker found
     ld a,(hl)			                ;95b1
@@ -579,7 +607,7 @@ COPY_VRAM_TO_BUFFER:
     ; HL: Start address of VRAM
 	jp LDIRMV   		;9691
 
-TABLE_1:
+TABLE_PTR_OBJECT_ATTRIBS:
     dw 0x0, 0x82, 0x104, 0x186, 0x208, 0x28a, 0x30c, 0x38e
     dw 0x6a8, 0x7ea, 0x9cc, 0xbfe, 0xc78, 0xcf2, 0xd6c, 0x0101
     dw 0x202, 0x303, 0x404, 0x505, 0x606, 0x505, 0x404, 0x303
@@ -592,13 +620,13 @@ OBJ_VRAM_PATTERNS:
 	ld (de),a		;96f6
 	sub a			;96f7
 
-TABLE_VRAM_PATTERNS:
+TABLE_VRAM_DESTINATION:
     dw 0xc000, 0xc100, 0xc200, 0xc300, 0xc400, 0xc500, 0xc600, 0xc700
     dw 0xc800, 0xc900, 0xca00, 0xcb00, 0xcc00, 0xcd00, 0xce00, 0xcf00
     dw 0xd000, 0xd100, 0xd200, 0xd300, 0xd400, 0xd500, 0xd600, 0xd700    
     
 
-TABLE_2:
+TABLE_OBJECT_ATTRIBS:
 	ld b,b			;9728	40 	@ 
 	ld (bc),a			;9729	02 	. 
 	nop			;972a	00 	. 
