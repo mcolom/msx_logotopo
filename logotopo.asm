@@ -768,9 +768,11 @@ l978dh:
 	ret nz			;97a6	c0 	. 
 	nop			;97a7	00 	. 
 	nop			;97a8	00 	. 
-	nop			;97a9	00 	. 
-	ld b,b			;97aa	40 	@ 
-	ld (bc),a			;97ab	02 	. 
+	nop			;97a9	00 	.
+
+    ; ***********************************
+    db 64
+    db 2
 	nop			;97ac	00 	. 
 	nop			;97ad	00 	. 
 	nop			;97ae	00 	. 
@@ -894,8 +896,10 @@ l97bfh:
 	nop			;9829	00 	. 
 	nop			;982a	00 	. 
 	nop			;982b	00 	. 
-	ld b,b			;982c	40 	@ 
-	ld (bc),a			;982d	02 	. 
+    
+    ; ***************************************
+    db 64
+    db 2
 	nop			;982e	00 	. 
 	nop			;982f	00 	. 
 	nop			;9830	00 	. 
@@ -1018,8 +1022,10 @@ l9891h:
 	nop			;98ab	00 	. 
 	nop			;98ac	00 	. 
 	nop			;98ad	00 	. 
-	ld b,b			;98ae	40 	@ 
-	ld (bc),a			;98af	02 	. 
+    
+    ; *****************************************
+    db 64
+    db 2
 	nop			;98b0	00 	. 
 	nop			;98b1	00 	. 
 	nop			;98b2	00 	. 
@@ -1145,8 +1151,10 @@ l9891h:
 	nop			;992d	00 	. 
 	nop			;992e	00 	. 
 	nop			;992f	00 	. 
-	ld b,b			;9930	40 	@ 
-	ld (bc),a			;9931	02 	. 
+    
+    ; *****************************************
+    db 64
+    db 2
 	nop			;9932	00 	. 
 	nop			;9933	00 	. 
 	nop			;9934	00 	. 
@@ -1268,8 +1276,10 @@ l995bh:
 	nop			;99af	00 	. 
 	nop			;99b0	00 	. 
 	nop			;99b1	00 	. 
-	ld b,b			;99b2	40 	@ 
-	ld (bc),a			;99b3	02 	. 
+
+    ; *****************************************
+    db 64
+    db 2
 	nop			;99b4	00 	. 
 	nop			;99b5	00 	. 
 	nop			;99b6	00 	. 
@@ -1391,8 +1401,10 @@ l9a0ch:
 	nop			;9a31	00 	. 
 	nop			;9a32	00 	. 
 	nop			;9a33	00 	. 
-	ld b,b			;9a34	40 	@ 
-	ld (bc),a			;9a35	02 	. 
+    
+    ; *****************************************
+    db 64
+    db 2
 	nop			;9a36	00 	. 
 	nop			;9a37	00 	. 
 	nop			;9a38	00 	. 
@@ -1483,7 +1495,7 @@ l9a8dh:
 	nop			;9a94	00 	. 
 	nop			;9a95	00 	. 
 	ccf			;9a96	3f 	? 
-	jr c,l9ab7h		;9a97	38 1e 	8 . 
+	jr c,0x9ab7		;9a97	38 1e 	8 . 
 	rlca			;9a99	07 	. 
 	inc bc			;9a9a	03 	. 
 	nop			;9a9b	00 	. 
@@ -1512,9 +1524,10 @@ l9aadh:
 	nop			;9ab3	00 	. 
 	nop			;9ab4	00 	. 
 	nop			;9ab5	00 	. 
-	ld c,b			;9ab6	48 	H 
-l9ab7h:
-	dec bc			;9ab7	0b 	. 
+    
+    ; *****************************************
+    db 72
+    db 11
 	nop			;9ab8	00 	. 
 	nop			;9ab9	00 	. 
 	nop			;9aba	00 	. 
@@ -2247,8 +2260,10 @@ l9c53h:
 	nop			;9dcd	00 	. 
 	rrca			;9dce	0f 	. 
 	ret m			;9dcf	f8 	. 
-	jr z,l9dd9h		;9dd0	28 07 	( . 
-l9dd2h:
+    
+    ; *****************************************
+    db 40
+    db 7
 	nop			;9dd2	00 	. 
 	nop			;9dd3	00 	. 
 	nop			;9dd4	00 	. 
@@ -2256,7 +2271,6 @@ l9dd2h:
 	nop			;9dd6	00 	. 
 	nop			;9dd7	00 	. 
 	nop			;9dd8	00 	. 
-l9dd9h:
 	nop			;9dd9	00 	. 
 	nop			;9dda	00 	. 
 	nop			;9ddb	00 	. 
@@ -2358,7 +2372,7 @@ l9e0ch:
 	nop			;9e41	00 	. 
 	add a,b			;9e42	80 	. 
 	ret po			;9e43	e0 	. 
-	jr c,l9dd2h		;9e44	38 8c 	8 . 
+	jr c,0x9dd2		;9e44	38 8c 	8 . 
 	call p,078f8h		;9e46	f4 f8 78 	. . x 
 l9e49h:
 	jr c,l9e4bh		;9e49	38 00 	8 . 
@@ -2440,8 +2454,8 @@ l9ea7h:
 	nop			;9ea7	00 	. 
 	nop			;9ea8	00 	. 
 	nop			;9ea9	00 	. 
-	nop			;9eaa	00 	. 
-	nop			;9eab	00 	. 
+    db 0
+    db 0
 	nop			;9eac	00 	. 
 	nop			;9ead	00 	. 
 	nop			;9eae	00 	. 
@@ -2502,8 +2516,10 @@ l9ec5h:
 	ld a,b			;9ee7	78 	x 
 	ld a,b			;9ee8	78 	x 
 	ld (hl),b			;9ee9	70 	p 
-	nop			;9eea	00 	. 
-	nop			;9eeb	00 	. 
+    
+    ; *****************************************
+	db 0        ;9eea
+	db 0
 	nop			;9eec	00 	. 
 	nop			;9eed	00 	. 
 	nop			;9eee	00 	. 
