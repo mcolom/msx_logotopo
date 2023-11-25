@@ -344,27 +344,27 @@ START:
 	di			    ;95d1
     
     ; Write a NOP in the auto-modificable code
-	xor a			;95d2
-	ld (AUTOMODIF_CODE),a	;95d3
+	xor a			            ;95d2
+	ld (AUTOMODIF_CODE),a	    ;95d3
 
-	call RESET_CGT	;95d6
-	call MOVE_T	;95d9
-	call MOVE_P	;95dc
+	call RESET_CGT	            ;95d6
+	call MOVE_T	                ;95d9
+	call MOVE_P	                ;95dc
 	call COPY_VRAM_TO_BUFFER	;95df
-	call FALL_O	;95e2
+	call FALL_O	                ;95e2
 	call COPY_VRAM_TO_BUFFER	;95e5
-	call JUMP_O	;95e8
-	call ADD_COLOR_TO_TOPO	;95eb
-	call sub_9614h	;95ee
-	call ROTATE_SOFT	;95f1
-	call ROTATE_SOFT	;95f4
-	call ROTATE_SOFT	;95f7
+	call JUMP_O	                ;95e8
+	call ADD_COLOR_TO_TOPO  	;95eb
+	call SET_TOPO_TEXT_COLOR	;95ee
+	call ROTATE_SOFT	        ;95f1
+	call ROTATE_SOFT	        ;95f4
+	call ROTATE_SOFT	        ;95f7
 	call REFLECTION_ANIMATION	;95fa
-	call NICE_GLINT	;95fd
-	ei			    ;9600
-	ret			    ;9601
+	call NICE_GLINT	            ;95fd
+	ei			                ;9600
+	ret			                ;9601
 
-; 
+ 
 ; ********************************************************************
 ; * Reset the Characters Colour Table (CT) to white over transparent *
 ; ********************************************************************
@@ -381,21 +381,27 @@ l9608h:
 	jr nz,l9608h		            ;9611 No, keep copying
 	ret			                    ;9613
 
-sub_9614h:
+; ***************************************************
+; * Set the red over black color to the "TOPO" text *
+; ***************************************************
+SET_TOPO_TEXT_COLOR:
 	ld hl, COLOR_TABLE_POS_S	;9614
 	ld a,COLOR_RED_BLACK		;9617
-    ; Repeat the following 2 times
-	ld c,2  		;9619
-l961bh:
-    ; Copy 64 times to HL++
-	ld b,64 		;961b
-l961dh:
-	call WRTVRM		;961d Set value 0x81 to CGT
-	inc hl			;9620
-	djnz l961dh		;9621
 
-	ld de,192   	;9623
-	add hl,de		;9626 HL += 192
+    ; Repeat the following twice
+	ld c,2  		            ;9619
+l961bh:
+    ; Copy the color to 8 tiles in VRAM's HL
+	ld b, 8*8		;961b 8 horizontal tiles, each of 8 bytes of color
+l961dh:
+	call WRTVRM		;961d Set color
+	inc hl			;9620
+	djnz l961dh		;9621 Loop until the line of chars is ready
+
+    ; Now do the line below
+	ld de,24*8   	;9623 Point HL to the next row of chars
+	add hl,de		;9626
+    
 	dec c			;9627
 	jr nz,l961bh	;9628 Repeat a second time
 	ret			    ;962a
