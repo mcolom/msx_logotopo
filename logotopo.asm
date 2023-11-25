@@ -106,13 +106,13 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [STORE_2] <-- TABLE_3 + 2*P
+; [TEMP_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS + 2*P
 AUTOMODIF_INST_2:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
-	ld de, TABLE_3		;94b5
+	ld de, TABLE_VRAM_PATTERNS		;94b5
 	add hl,de			;94b8
-	ld (STORE_2),hl		;94b9 [STORE_2] <-- TABLE_3 + 2*P. Ex: 0x9704
+	ld (TEMP_VRAM_PATTERNS),hl		;94b9 [TEMP_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]. Ex: 0x9704
 
 ; Obtain the table of attributes of the object, according to its index Q
 AUTOMODIF_OBJECT_IDX:
@@ -130,7 +130,7 @@ AUTOMODIF_OBJECT_IDX:
 	ld d,(hl)			;94c6
     ; Ex: DE = 0x038E
 
-    ; Obtain pattern stuff
+    ; Obtain pattern attributes
 	; D2 = [D1] + TABLE_2 = TABLE_2[TABLE_1[2*Q]]
     ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
@@ -150,28 +150,29 @@ AUTOMODIF_OBJECT_IDX:
 	ld a,(hl)			            ;94d0 Ex: A=0xB
 	ld (AUTOMODIF_NUM_ROWS + 1),a	;94d1
 
+    ; Store the address of the patterns
 	inc hl			    ;94d4
 	ld (TEMP_PATTERNS_ADDRESS),hl
 
-	ld ix,(STORE_2)		;94d8 IX <-- [STORE_2] = TABLE_3 + 2*P. Ex: 0x9704
-
-
+	ld ix,(TEMP_VRAM_PATTERNS)		;94d8 IX <-- [TEMP_VRAM_PATTERNS] = TABLE_VRAM_PATTERNS + 2*P. Ex: 0x9704
 
 AUTOMODIF_NUM_ROWS:
 	ld c, 5     		;94dc Number of rows (chars) of the object
 
 write_all_tiles:
+    ; DE <-- TABLE_VRAM_PATTERNS[2*P], the VRAM address
 	ld e,(ix+000h)		;94de
 	inc ix		        ;94e1
 	ld d,(ix+000h)		;94e3
 	inc ix		        ;94e6
     ; Ex: DE = 0xC600
 
-; Get the address of the patterns in DE
 ; Get the VRAM destination in HL
-AUTOMODIF_INST_3:
+; Get the address of the pattern of this particular object in DE
+AUTOMODIF_VRAM_PATTERN_IDX:
 	ld hl,000b0h		;94e8
 	add hl,de			;94eb
+    ;
 	ld de,(TEMP_PATTERNS_ADDRESS)		;94ec Ex: 0x9AB8
 
 ; Set the number of tile pattern lines that it needs to copy in that char row
@@ -179,12 +180,14 @@ AUTOMODIF_INST_3:
 AUTOMODIF_TILE_LINES_PER_CHAR_ROW:
 	ld b,018h		    ;94f0
 
-; Draw a line of the object
+; Draw a line of the object's tile
 draw_tile_line:
-	ld a,(de)			;94f2	1a 	. 
+    ; Read a line of the tile pattern
+	ld a,(de)			;94f2
 ; It can be a 0: NOP or a 0xB6: OR (HL)
 AUTOMODIF_CODE:
 	nop			    ;94f3
+
     ; Ex: DE = 0x9AB8 --> Patterns to draw
     ; Ex: HL = 0xC600 --> VRAM destination
 	inc de			;94f4
@@ -210,7 +213,7 @@ ROTATE_SOFT:
 	ld a,00fh		;950b	3e 0f 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;950d	32 b2 94 	2 . . 
 	ld a,078h		;9510	3e 78 	> x 
-	ld (AUTOMODIF_INST_3 + 1),a		;9512	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9512	32 e9 94 	2 . . 
     
     ; Write a NOP in the auto-modificable code
 	xor a			        ;9515
@@ -245,7 +248,7 @@ l953eh:
 	cp NUM_ROWS	                    ;953e
 	ret z			                ;9540
 
-	ld (AUTOMODIF_INST_3 + 1),a		;9541
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9541
 	push af			                ;9544
 	call MOVE_OBJECT		            ;9545
 	pop af			                ;9548
@@ -261,7 +264,7 @@ MOVE_P:
 l9559h:
 	cp 050h		;9559	fe 50 	. P 
 	ret z			;955b	c8 	. 
-	ld (AUTOMODIF_INST_3 + 1),a		;955c	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;955c	32 e9 94 	2 . . 
 	push af			;955f	f5 	. 
 	ei			;9560	fb 	. 
 	halt			;9561	76 	v 
@@ -279,7 +282,7 @@ FALL_O:
 	ld a,008h		;9570	3e 08 	> . 
 	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9572	32 bd 94 	2 . . 
 	ld a,038h		;9575	3e 38 	> 8 
-	ld (AUTOMODIF_INST_3 + 1),a		;9577	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9577	32 e9 94 	2 . . 
 	ld a,000h		;957a	3e 00 	> . 
 l957ch:
 	cp 007h		;957c	fe 07 	. . 
@@ -301,7 +304,7 @@ l9596h:
 	cp 0ffh		;9597	fe ff 	. . 
 	jr z,l95abh		;9599	28 10 	( . 
 	inc hl			;959b	23 	# 
-	ld (AUTOMODIF_INST_3 + 1),a		;959c	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;959c	32 e9 94 	2 . . 
 	ld a,(hl)			;959f	7e 	~ 
 	inc hl			;95a0	23 	# 
 	ld (AUTOMODIF_INST_2 + 1),a		;95a1	32 b2 94 	2 . . 
@@ -320,7 +323,7 @@ l95b1h:
 	push hl			;95b5	e5 	. 
 	ld (AUTOMODIF_OBJECT_IDX + 1),a		;95b6	32 bd 94 	2 . . 
 	ld a,0b0h		;95b9	3e b0 	> . 
-	ld (AUTOMODIF_INST_3 + 1),a		;95bb	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;95bb	32 e9 94 	2 . . 
 	ld a,00dh		;95be	3e 0d 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;95c0	32 b2 94 	2 . . 
 	ei			;95c3	fb 	. 
@@ -472,11 +475,11 @@ TABLE_1:
     dw 0x570, 0x670, 0xbff, 0xd0c, 0xb0c, 0xd0c, 0xff0e, 0x0
 TEMP_PATTERNS_ADDRESS:
 	ld c,0a5h		;96f4
-STORE_2:
+TEMP_VRAM_PATTERNS:
 	ld (de),a		;96f6
 	sub a			;96f7
 
-TABLE_3:
+TABLE_VRAM_PATTERNS:
     dw 0xc000, 0xc100, 0xc200, 0xc300, 0xc400, 0xc500, 0xc600, 0xc700
     dw 0xc800, 0xc900, 0xca00, 0xcb00, 0xcc00, 0xcd00, 0xce00, 0xcf00
     dw 0xd000, 0xd100, 0xd200, 0xd300, 0xd400, 0xd500, 0xd600, 0xd700    
