@@ -375,28 +375,42 @@ l95abh:
 
 
 NICE_GLINT:
-	ld hl,0x96e9		;95ae	21 e9 96 	! . . 
+	ld hl, TABLE_1 + 42*2 + 1           ;95ae
 l95b1h:
-	ld a,(hl)			;95b1	7e 	~ 
-	cp 0ffh		;95b2	fe ff 	. . 
-	ret z			;95b4	c8 	. 
-	push hl			;95b5	e5 	. 
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;95b6	32 bd 94 	2 . . 
-	ld a,0b0h		;95b9	3e b0 	> . 
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a		;95bb	32 e9 94 	2 . . 
-	ld a,00dh		;95be	3e 0d 	> . 
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a		;95c0	32 b2 94 	2 . . 
-	ei			;95c3	fb 	. 
-	ld b,004h		;95c4	06 04 	. . 
+	; Read object IDs until 0xff marker found
+    ld a,(hl)			                ;95b1
+	cp 0ffh		                        ;95b2
+	ret z			                    ;95b4
+    
+	push hl			                    ;95b5
+	
+    ; Configure object attributes
+    ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;95b6
+	ld a, 176		                        ;95b9
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;95bb
+	ld a,13 		                        ;95be
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;95c0
+    
+    ; Pause for 4 retraces
+	ei			                ;95c3
+	ld b,004h		            ;95c4
 l95c6h:
-	halt			;95c6	76 	v 
-	djnz l95c6h		;95c7	10 fd 	. . 
-	di			;95c9	f3 	. 
-	call MOVE_OBJECT		;95ca	cd b1 94 	. . . 
-	pop hl			;95cd	e1 	. 
-	inc hl			;95ce	23 	# 
-	jr l95b1h		;95cf	18 e0 	. . 
+	halt			            ;95c6
+	djnz l95c6h		            ;95c7
+	di			                ;95c9
+	
+    ; Draw object
+    call MOVE_OBJECT		    ;95ca
+    
+    ; Loop until finished
+	pop hl			            ;95cd
+	inc hl			            ;95ce
+	jr l95b1h		            ;95cf
 
+
+; ********************
+; * Main entry point *
+; ********************
 START:
 	di			    ;95d1
     
