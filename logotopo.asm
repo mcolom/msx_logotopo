@@ -106,11 +106,11 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [STORE_2] <-- 0x96f8 + 2*P
+; [STORE_2] <-- TABLE_3 + 2*P
 AUTOMODIF_INST_2:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
-	ld de, 0x96f8		;94b5
+	ld de, TABLE_3		;94b5
 	add hl,de			;94b8
 	ld (STORE_2),hl		;94b9
 
@@ -522,7 +522,8 @@ l96f4h:
 STORE_2:
 	ld (de),a			;96f6	12 	. 
 	sub a			;96f7	97 	. 
-l96f8h:
+
+TABLE_3:
 	nop			;96f8	00 	. 
 	ret nz			;96f9	c0 	. 
 	nop			;96fa	00 	. 
