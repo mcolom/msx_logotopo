@@ -88,12 +88,12 @@ l949fh:
     ; Loop until the whole logo has been walked through
 	jr l947ch		            ;94a4
 
-; ********************************************
-; * Write value A into the VRAM's address HL *
-; ********************************************
+; **********************************************
+; * Write 8 times value A to VRAM's address HL *
+; **********************************************
 COPY_8_BYTES_TO_VRAM:
 	push bc			;94a6
-	ld b,008h		;94a7
+	ld b, 8 		;94a7
 l94a9h:
 	call WRTVRM		;94a9
 	inc hl			;94ac
@@ -124,13 +124,13 @@ AUTOMODIF_INST_1:
 	ld de, TABLE_1		;94c0
 	add hl,de			;94c3 Ex: HL = 0x96A2
 
-    ; DE = HL <-- [D1]
+    ; DE <-- [D1]
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
     ; Ex: DE = 0x38E
 
-	; D2 = HL <-- [D1] + TABLE_2
+	; D2 = [D1] + TABLE_2
     ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
     ; Ex: HL = 0x9AB6
@@ -143,8 +143,8 @@ AUTOMODIF_INST_1:
 	ld a,(hl)			;94d0 Ex: A=0xB
 	ld (AUTOMODIF_INST_5 + 1),a		;94d1
 
-	inc hl			;94d4	23 	# 
-	ld (STORE_3),hl		;94d5	22 f4 96 	" . . 
+	inc hl			    ;94d4
+	ld (STORE_3),hl		;94d5
 
 	ld ix,(STORE_2)		;94d8 IX <-- [STORE_2] = TABLE_3 + 2*P. Ex: 0x9704
 AUTOMODIF_INST_5:
