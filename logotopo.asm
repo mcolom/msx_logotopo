@@ -30,17 +30,17 @@
     
     ; Tables:
     ; ---------------------------------------------------------------
-    ; TABLE_VRAM_DESTINATION:
+    ; - TABLE_VRAM_DESTINATION:
     ;   Indexed by object ID, this table provides pointers to
     ;   VRAM destinations (positions).
     ;   It stores the actual pointer corresponding to the current
-    ;   object in OBJ_VRAM_PATTERNS.
-    ;   OBJ_VRAM_PATTERNS <-- TABLE_VRAM_DESTINATION[2*P].
-    ;   The address is still modified by AUTOMODIF_VRAM_DESTINATION to
+    ;   object in OBJ_VRAM_DESTINATION when the object is being drawn.
+    ;   OBJ_VRAM_DESTINATION <-- TABLE_VRAM_DESTINATION[2*P].
+    ;   The address is still modified by AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET to
     ;   obtain the final VRAM destination in HL.
     ;
-    
-    ; TABLE_PTR_OBJECT_ATTRIBS and TABLE_OBJECT_ATTRIBS
+    ;
+    ; - TABLE_PTR_OBJECT_ATTRIBS and TABLE_OBJECT_ATTRIBS
     ;   The first table contains pointers indexed by object ID to a
     ;   second table which contains the attributes of the object.
     ;   The attributes are:
@@ -50,7 +50,29 @@
     ;   It's indirected this way:
     ;   TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]]
     ;   The patterns in RAM are stored in OBJ_RAM_PATTERNS when the
-    ;   object is drawn.
+    ;   object is being drawn.
+
+
+    ; Auto-modifiers of code
+    ; ---------------------------------------------------------------
+    ;   - AUTOMODIF_VRAM_OBJECT_DESTINATION: sets parameter P when computing
+    ;   OBJ_VRAM_DESTINATION = TABLE_VRAM_DESTINATION[2*P].
+    ;
+    ;   - AUTOMODIF_OBJECT_ATTRIBS_IDX: sets parameter Q when computing the
+    ;   pointer to the table of attributes of the current object:
+    ;   TABLE_OBJECT_ATTRIBS[TABLE_PTR_OBJECT_ATTRIBS[2*Q]].
+    ;
+    ;   - AUTOMODIF_NUM_ROWS: set the number of rows (chars) of the object.
+    
+    ;   - AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET: sets an offset in VRAM with
+    ;   respect to its normal OBJ_VRAM_DESTINATION.
+    
+    ;   AUTOMODIF_TILE_LINES_PER_CHAR_ROW: number of tile lines to
+    ;   fill each char row.
+    ;
+    ;   AUTOMODIF_TRANSPARENCY: controls if the patterns are
+    ;   transparent or opaque.
+    
     
     org	09470h
 	jp START		;9470  Jump to start
@@ -134,16 +156,16 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_DESTINATION[2*P]
-AUTOMODIF_VRAM_OBJECT_IDX:
+; [OBJ_VRAM_DESTINATION] <-- TABLE_VRAM_DESTINATION[2*P]
+AUTOMODIF_VRAM_OBJECT_DESTINATION:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
 	ld de, TABLE_VRAM_DESTINATION		;94b5
 	add hl,de			;94b8
-	ld (OBJ_VRAM_PATTERNS), hl		;94b9 [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_DESTINATION[2*P]. Ex: 0x9704
+	ld (OBJ_VRAM_DESTINATION), hl		;94b9 [OBJ_VRAM_DESTINATION] <-- TABLE_VRAM_DESTINATION[2*P]. Ex: 0x9704
 
 ; Obtain the table of attributes of the object, according to its index Q
-AUTOMODIF_OBJECT_IDX:
+AUTOMODIF_OBJECT_ATTRIBS_IDX:
     ; D1 = HL <-- TABLE_PTR_OBJECT_ATTRIBS + 2*Q
 	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
                         ; Ex: HL=7
@@ -187,8 +209,8 @@ AUTOMODIF_OBJECT_IDX:
     ; Copy from RAM's OBJ_RAM_PATTERNS...
 	inc hl			                ;94d4
 	ld (OBJ_RAM_PATTERNS),hl   ; Ex: 0x9AB8
-    ; ... to VRAM's OBJ_VRAM_PATTERNS
-	ld ix,(OBJ_VRAM_PATTERNS)		;94d8 IX <-- [OBJ_VRAM_PATTERNS] = TABLE_VRAM_DESTINATION + 2*P. Ex: 0x9704
+    ; ... to VRAM's OBJ_VRAM_DESTINATION
+	ld ix,(OBJ_VRAM_DESTINATION)		;94d8 IX <-- [OBJ_VRAM_DESTINATION] = TABLE_VRAM_DESTINATION + 2*P. Ex: 0x9704
 
 AUTOMODIF_NUM_ROWS:
 	ld c, 5     		;94dc Number of rows (chars) of the object
@@ -203,7 +225,7 @@ write_all_tiles:
 
 ; Get the VRAM destination in HL
 ; Get the address of the pattern of this particular object in DE
-AUTOMODIF_VRAM_DESTINATION:
+AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET:
 	ld hl,000b0h		;94e8
 	add hl,de			;94eb
     ;
@@ -219,7 +241,7 @@ draw_tile_line:
     ; Read a line of the tile pattern
 	ld a,(de)			;94f2
 ; It can be a 0: NOP or a 0xB6: OR (HL)
-AUTOMODIF_CODE:
+AUTOMODIF_TRANSPARENCY:
 	nop			    ;94f3
 
     ; Ex: DE = 0x9AB8 --> Patterns to draw
@@ -249,13 +271,13 @@ AUTOMODIF_CODE:
 ROTATE_SOFT:
     ; Object setup
 	ld a, 15		                        ;950b
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;950d
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a	;950d
 	ld a, 120		                        ;9510
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9512
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a	;9512
     
     ; Write a NOP in the auto-modificable code
 	xor a			        ;9515
-	ld (AUTOMODIF_CODE),a	;9516
+	ld (AUTOMODIF_TRANSPARENCY),a	;9516
 
     ; Draw different rotations according to the object IDX
 	ld hl,TABLE_PTR_OBJECT_ATTRIBS + 15*2    ;9519
@@ -265,7 +287,7 @@ l951ch:
 	cp 0ffh		            ;951d
 	ret z			        ;951f
     
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9520
+	ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a		;9520
 	push hl			                    ;9523
 
     ; Pause for two retraces
@@ -288,9 +310,9 @@ l9527h:
 MOVE_T:
     ; Configure object ID
 	ld a, 7	    	                        ;9532
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;9534
+	ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a		    ;9534
 	ld a, 6 		                        ;9537
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;9539
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a	;9539
 
 	ld a, 0 		                        ;953c
 l953eh:
@@ -298,7 +320,7 @@ l953eh:
 	ret z			                        ;9540
 
     ; Configure offset
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9541
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a	;9541
     
     ; Draw object
 	push af			                        ;9544
@@ -315,9 +337,9 @@ l953eh:
 MOVE_P:
     ; Configure object ID
 	ld a, 9		                            ;954d
-	ld (AUTOMODIF_OBJECT_IDX + 1),a
+	ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a
     ld a, 7                                 ;9552
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a
 
     ; Put in its position
 	ld a, 144   	                        ;9557
@@ -325,7 +347,7 @@ l9559h:
 	cp 80		                            ;9559 Move from 144 to 80 (8 steps)
 	ret z			                        ;955b
 
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;955c
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a	;955c
 	push af			                        ;955f
 
     ; Wait one retrace
@@ -347,20 +369,20 @@ l9559h:
 FALL_O:
     ; Write a OR (HL) in the auto-modificable code
 	ld a,0b6h		        ;956b Opcode for OR (HL)
-	ld (AUTOMODIF_CODE),a	;956d
+	ld (AUTOMODIF_TRANSPARENCY),a	;956d
     
     ; Configure object ID
 	ld a, 8		                            ;9570
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;9572
+	ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a		    ;9572
 	ld a,56		                            ;9575
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9577
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a	;9577
     
 	ld a,0		                            ;957a
 l957ch:
     ; Repeat 7 times: move O down
 	cp 7		                            ;957c
 	jr z,l958bh		                        ;957e
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;9580
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a	;9580
 	push af			;9583	f5 	. 
 	call MOVE_OBJECT		;9584	cd b1 94 	. . . 
 	pop af			;9587	f1 	. 
@@ -376,7 +398,7 @@ l958bh:
 ; ***********************
 JUMP_O:
 	ld a, 10		                    ;958e
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9590
+	ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a		;9590
 	ld hl, TABLE_PTR_OBJECT_ATTRIBS + 28*2               ;9593
 l9596h:
     ; Read value and exit if 0xff
@@ -386,12 +408,12 @@ l9596h:
 	inc hl			                    ;959b
 
     ; Update position
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a		;959c	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a		;959c	32 e9 94 	2 . . 
 
 	ld a,(hl)			;959f	7e 	~ 
 	inc hl			;95a0	23 	# 
 
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a		;95a1	32 b2 94 	2 . . 
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a		;95a1	32 b2 94 	2 . . 
 
 	push hl			;95a4	e5 	. 
 	call MOVE_OBJECT		;95a5	cd b1 94 	. . . 
@@ -413,11 +435,11 @@ l95b1h:
 	push hl			                    ;95b5
 	
     ; Configure object attributes
-    ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;95b6
+    ld (AUTOMODIF_OBJECT_ATTRIBS_IDX + 1),a		    ;95b6
 	ld a, 176		                        ;95b9
-	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;95bb
+	ld (AUTOMODIF_VRAM_OBJ_DESTINATION_OFFSET + 1),a	;95bb
 	ld a,13 		                        ;95be
-	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;95c0
+	ld (AUTOMODIF_VRAM_OBJECT_DESTINATION + 1),a	;95c0
     
     ; Pause for 4 retraces
 	ei			                ;95c3
@@ -444,7 +466,7 @@ START:
     
     ; Write a NOP in the auto-modificable code
 	xor a			            ;95d2
-	ld (AUTOMODIF_CODE),a	    ;95d3
+	ld (AUTOMODIF_TRANSPARENCY),a	    ;95d3
 
 	call RESET_CGT	            ;95d6
 	call MOVE_T	                ;95d9
@@ -616,7 +638,7 @@ TABLE_PTR_OBJECT_ATTRIBS:
     dw 0x570, 0x670, 0xbff, 0xd0c, 0xb0c, 0xd0c, 0xff0e, 0x0
 OBJ_RAM_PATTERNS:
 	ld c,0a5h		;96f4
-OBJ_VRAM_PATTERNS:
+OBJ_VRAM_DESTINATION:
 	ld (de),a		;96f6
 	sub a			;96f7
 
@@ -624,11 +646,14 @@ TABLE_VRAM_DESTINATION:
     dw 0xc000, 0xc100, 0xc200, 0xc300, 0xc400, 0xc500, 0xc600, 0xc700
     dw 0xc800, 0xc900, 0xca00, 0xcb00, 0xcc00, 0xcd00, 0xce00, 0xcf00
     dw 0xd000, 0xd100, 0xd200, 0xd300, 0xd400, 0xd500, 0xd600, 0xd700    
-    
 
+; The attributes are:    
+;   - AUTOMODIF_TILE_LINES_PER_CHAR_ROW
+;   - AUTOMODIF_NUM_ROWS
+;   - The patterns
 TABLE_OBJECT_ATTRIBS:
-	ld b,b			;9728	40 	@ 
-	ld (bc),a			;9729	02 	. 
+    db 64
+    db 2
 	nop			;972a	00 	. 
 	nop			;972b	00 	. 
 	nop			;972c	00 	. 
