@@ -18,6 +18,8 @@
     COLOR_TABLE: equ 0x2000
     COLOR_RED_BLACK: equ 0x81
     COLOR_WHITE_BLACK: equ 0xf1
+    COLOR_SKYBLUE_BLACK: equ 0x71
+    COLOR_LIGHTGREEN_BLACK: equ 0x31
     COLOR_WHITE_TRANSPARENT: equ 0xf0
     
     VRAM_BUFFER: equ 0xc000
@@ -110,7 +112,7 @@ l94a9h:
 MOVE_OBJECT:
 
 ; [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]
-AUTOMODIF_INST_2:
+AUTOMODIF_VRAM_OBJECT_IDX:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
 	ld de, TABLE_VRAM_PATTERNS		;94b5
@@ -173,7 +175,7 @@ write_all_tiles:
 
 ; Get the VRAM destination in HL
 ; Get the address of the pattern of this particular object in DE
-AUTOMODIF_VRAM_PATTERN_IDX:
+AUTOMODIF_VRAM_DESTINATION:
 	ld hl,000b0h		;94e8
 	add hl,de			;94eb
     ;
@@ -213,111 +215,165 @@ AUTOMODIF_CODE:
 	jr nz,write_all_tiles	;9508
 	ret			            ;950a
 
+; *****************************************
+; * Animation of the "SOFT" text rotating *
+; *****************************************
 ROTATE_SOFT:
-	ld a,00fh		;950b	3e 0f 	> . 
-	ld (AUTOMODIF_INST_2 + 1),a		;950d	32 b2 94 	2 . . 
-	ld a,078h		;9510	3e 78 	> x 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9512	32 e9 94 	2 . . 
+    ; Object setup
+	ld a, 15		                        ;950b
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;950d
+	ld a, 120		                        ;9510
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9512
     
     ; Write a NOP in the auto-modificable code
 	xor a			        ;9515
 	ld (AUTOMODIF_CODE),a	;9516
-	ld hl,0x96b2		    ;9519
+
+    ; Draw different rotations according to the object IDX
+	ld hl,TABLE_1 + 15*2    ;9519
 l951ch:
-	ld a,(hl)			;951c	7e 	~ 
-	cp 0ffh		;951d	fe ff 	. . 
-	ret z			;951f	c8 	. 
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9520	32 bd 94 	2 . . 
-	push hl			;9523	e5 	. 
-	ei			;9524	fb 	. 
-	ld b,002h		;9525	06 02 	. . 
+    ; Read object IDX. Exit if 0xff marker.
+	ld a,(hl)			    ;951c
+	cp 0ffh		            ;951d
+	ret z			        ;951f
+    
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9520
+	push hl			                    ;9523
+
+    ; Pause for two retraces
+	ei			                        ;9524
+	ld b,002h		                    ;9525
 l9527h:
-	halt			;9527	76 	v 
-	djnz l9527h		;9528	10 fd 	. . 
-	di			;952a	f3 	. 
-	call MOVE_OBJECT		;952b	cd b1 94 	. . . 
-	pop hl			;952e	e1 	. 
-	inc hl			;952f	23 	# 
-	jr l951ch		;9530	18 ea 	. . 
+	halt			;9527
+	djnz l9527h		;9528
+	di			    ;952a
 
+    ; Draw object and loop until finished
+	call MOVE_OBJECT	;952b
+	pop hl			    ;952e
+	inc hl			    ;952f
+	jr l951ch		    ;9530
+
+; *****************
+; * Move letter T *
+; *****************
 MOVE_T:
-	ld a, 7	    	                ;9532
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9534
+    ; Configure object ID
+	ld a, 7	    	                        ;9532
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;9534
+	ld a, 6 		                        ;9537
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;9539
 
-	ld a, 6 		                ;9537
-	ld (AUTOMODIF_INST_2 + 1),a		;9539
-
-	ld a, 0 		                ;953c
+	ld a, 0 		                        ;953c
 l953eh:
-	cp NUM_ROWS	                    ;953e
-	ret z			                ;9540
+	cp NUM_ROWS	                            ;953e
+	ret z			                        ;9540
 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9541
-	push af			                ;9544
-	call MOVE_OBJECT		            ;9545
-	pop af			                ;9548
-	add a, 8		                ;9549
-	jr l953eh		                ;954b
+    ; Configure offset
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9541
+    
+    ; Draw object
+	push af			                        ;9544
+	call MOVE_OBJECT		                ;9545
+	pop af			                        ;9548
 
+    ; Move to the right
+	add a, 8		                        ;9549
+	jr l953eh		                        ;954b Loop until finished
+
+; *****************
+; * Move letter P *
+; *****************
 MOVE_P:
-	ld a,009h		;954d	3e 09 	> . 
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;954f	32 bd 94 	2 . . 
-	ld a,007h		;9552	3e 07 	> . 
-	ld (AUTOMODIF_INST_2 + 1),a		;9554	32 b2 94 	2 . . 
-	ld a,090h		;9557	3e 90 	> . 
-l9559h:
-	cp 050h		;9559	fe 50 	. P 
-	ret z			;955b	c8 	. 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;955c	32 e9 94 	2 . . 
-	push af			;955f	f5 	. 
-	ei			;9560	fb 	. 
-	halt			;9561	76 	v 
-	di			;9562	f3 	. 
-	call MOVE_OBJECT		;9563	cd b1 94 	. . . 
-	pop af			;9566	f1 	. 
-	sub 008h		;9567	d6 08 	. . 
-	jr l9559h		;9569	18 ee 	. . 
+    ; Configure object ID
+	ld a, 9		                            ;954d
+	ld (AUTOMODIF_OBJECT_IDX + 1),a
+    ld a, 7                                 ;9552
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a
 
+    ; Put in its position
+	ld a, 144   	                        ;9557
+l9559h:
+	cp 80		                            ;9559 Move from 144 to 80 (8 steps)
+	ret z			                        ;955b
+
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;955c
+	push af			                        ;955f
+
+    ; Wait one retrace
+	ei			                            ;9560
+	halt			                        ;9561
+	di			                            ;9562
+
+    ; Draw object
+	call MOVE_OBJECT		                ;9563
+	pop af			                        ;9566
+    
+    ; Move to the left
+	sub 008h		                        ;9567
+	jr l9559h		                        ;9569
+
+; ****************************
+; * Move letter O: fall down *
+; ****************************
 FALL_O:
     ; Write a OR (HL) in the auto-modificable code
 	ld a,0b6h		        ;956b Opcode for OR (HL)
 	ld (AUTOMODIF_CODE),a	;956d
-
-	ld a,008h		;9570	3e 08 	> . 
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9572	32 bd 94 	2 . . 
-	ld a,038h		;9575	3e 38 	> 8 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;9577	32 e9 94 	2 . . 
-	ld a,000h		;957a	3e 00 	> . 
+    
+    ; Configure object ID
+	ld a, 8		                            ;9570
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		    ;9572
+	ld a,56		                            ;9575
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a	;9577
+    
+	ld a,0		                            ;957a
 l957ch:
-	cp 007h		;957c	fe 07 	. . 
-	jr z,l958bh		;957e	28 0b 	( . 
-	ld (AUTOMODIF_INST_2 + 1),a		;9580	32 b2 94 	2 . . 
+    ; Repeat 7 times: move O down
+	cp 7		                            ;957c
+	jr z,l958bh		                        ;957e
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a	;9580
 	push af			;9583	f5 	. 
 	call MOVE_OBJECT		;9584	cd b1 94 	. . . 
 	pop af			;9587	f1 	. 
 	inc a			;9588	3c 	< 
 	jr l957ch		;9589	18 f1 	. . 
 l958bh:
+    ; Do the last copy and exit
 	jp MOVE_OBJECT		;958b	c3 b1 94 	. . . 
+
+
+; ***********************
+; * Move letter O: jump *
+; ***********************
 JUMP_O:
-	ld a,00ah		;958e	3e 0a 	> . 
-	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9590	32 bd 94 	2 . . 
-	ld hl,0x96cc		;9593	21 cc 96 	! . . 
+	ld a, 10		                    ;958e
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9590
+	ld hl, TABLE_1 + 28*2               ;9593
 l9596h:
-	ld a,(hl)			;9596	7e 	~ 
-	cp 0ffh		;9597	fe ff 	. . 
-	jr z,l95abh		;9599	28 10 	( . 
-	inc hl			;959b	23 	# 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;959c	32 e9 94 	2 . . 
+    ; Read value and exit if 0xff
+	ld a,(hl)			                ;9596
+	cp 0ffh		                        ;9597
+	jr z,l95abh		                    ;9599
+	inc hl			                    ;959b
+
+    ; Update position
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a		;959c	32 e9 94 	2 . . 
+
 	ld a,(hl)			;959f	7e 	~ 
 	inc hl			;95a0	23 	# 
-	ld (AUTOMODIF_INST_2 + 1),a		;95a1	32 b2 94 	2 . . 
+
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a		;95a1	32 b2 94 	2 . . 
+
 	push hl			;95a4	e5 	. 
 	call MOVE_OBJECT		;95a5	cd b1 94 	. . . 
 	pop hl			;95a8	e1 	. 
+
 	jr l9596h		;95a9	18 eb 	. . 
 l95abh:
-	jp MOVE_OBJECT		;95ab	c3 b1 94 	. . . 
+	jp MOVE_OBJECT		;95ab
+
+
 NICE_GLINT:
 	ld hl,0x96e9		;95ae	21 e9 96 	! . . 
 l95b1h:
@@ -327,9 +383,9 @@ l95b1h:
 	push hl			;95b5	e5 	. 
 	ld (AUTOMODIF_OBJECT_IDX + 1),a		;95b6	32 bd 94 	2 . . 
 	ld a,0b0h		;95b9	3e b0 	> . 
-	ld (AUTOMODIF_VRAM_PATTERN_IDX + 1),a		;95bb	32 e9 94 	2 . . 
+	ld (AUTOMODIF_VRAM_DESTINATION + 1),a		;95bb	32 e9 94 	2 . . 
 	ld a,00dh		;95be	3e 0d 	> . 
-	ld (AUTOMODIF_INST_2 + 1),a		;95c0	32 b2 94 	2 . . 
+	ld (AUTOMODIF_VRAM_OBJECT_IDX + 1),a		;95c0	32 b2 94 	2 . . 
 	ei			;95c3	fb 	. 
 	ld b,004h		;95c4	06 04 	. . 
 l95c6h:
@@ -355,7 +411,7 @@ START:
 	call FALL_O	                ;95e2
 	call COPY_VRAM_TO_BUFFER	;95e5
 	call JUMP_O	                ;95e8
-	call ADD_COLOR_TO_TOPO  	;95eb
+	call ADD_COLORS_TO_TOPO  	;95eb
 	call SET_TOPO_TEXT_COLOR	;95ee
 	call ROTATE_SOFT	        ;95f1
 	call ROTATE_SOFT	        ;95f4
@@ -407,61 +463,85 @@ l961dh:
 	jr nz,l961bh	;9628 Repeat a second time
 	ret			    ;962a
 
-ADD_COLOR_TO_TOPO:
+; *********************************************************
+; * Add colors to the TOPO logo, blue and green column by *
+; * column, in mirror symmetry                            *
+; *********************************************************
+ADD_COLORS_TO_TOPO:
 	ld de,00008h		;962b	11 08 00 	. . . 
 	ld hl,02658h		;962e	21 58 26 	! X & 
 l9631h:
-	push hl			;9631	e5 	. 
-	ld b,005h		;9632	06 05 	. . 
-	push de			;9634	d5 	. 
+    ; Draw upper part of the column in blue
+	push hl			;9631
+	ld b, 5		    ;9632 Draw 5 chars
+	push de			;9634
 l9635h:
-	ld a,071h		;9635	3e 71 	> q 
-	call sub_967eh		;9637	cd 7e 96 	. ~ . 
-	ld de,000f8h		;963a	11 f8 00 	. . . 
-	add hl,de			;963d	19 	. 
-	djnz l9635h		;963e	10 f5 	. . 
-	ld b,006h		;9640	06 06 	. . 
+	ld a, COLOR_SKYBLUE_BLACK	;9635
+	call sub_967eh		        ;9637
+	ld de, 248   		        ;963a
+	add hl,de			        ;963d Next row
+	djnz l9635h		            ;963e
+
+    ; Draw lower part of the column in green
+	ld b, 6		                    ;9640 Draw 6 chars
 l9642h:
-	ld a,031h		;9642	3e 31 	> 1 
-	call sub_967eh		;9644	cd 7e 96 	. ~ . 
-	add hl,de			;9647	19 	. 
-	djnz l9642h		;9648	10 f8 	. . 
-	pop de			;964a	d1 	. 
-	pop hl			;964b	e1 	. 
-	push hl			;964c	e5 	. 
-	add hl,de			;964d	19 	. 
-	push de			;964e	d5 	. 
-	ld b,005h		;964f	06 05 	. . 
+	ld a, COLOR_LIGHTGREEN_BLACK	;9642
+	call sub_967eh		            ;9644
+	add hl,de			            ;9647 Next row
+	djnz l9642h		                ;9648
+
+	pop de			                ;964a
+	pop hl			                ;964b
+	push hl			                ;964c
+
+    ; Point to next column
+	add hl,de		                ;964d
+	push de			                ;964e
+
+    ; Now it'll draw two other columns, in mirror symmetry
+
+    ; Draw upper part of the column in blue
+	ld b, 5		                    ;964f Draw 5 chars
 l9651h:
-	ld a,071h		;9651	3e 71 	> q 
-	call sub_967eh		;9653	cd 7e 96 	. ~ . 
-	ld de,000f8h		;9656	11 f8 00 	. . . 
-	add hl,de			;9659	19 	. 
-	djnz l9651h		;965a	10 f5 	. . 
-	ld b,006h		;965c	06 06 	. . 
+	ld a,COLOR_SKYBLUE_BLACK		;9651
+	call sub_967eh		            ;9653
+	ld de, 248  		            ;9656
+	add hl,de			            ;9659  Next row
+	djnz l9651h		                ;965a
+
+    ; Draw lower part of the column in green
+	ld b, 6 		                ;965c Draw 6 chars
 l965eh:
-	ld a,031h		;965e	3e 31 	> 1 
-	call sub_967eh		;9660	cd 7e 96 	. ~ . 
-	add hl,de			;9663	19 	. 
-	djnz l965eh		;9664	10 f8 	. . 
-	pop de			;9666	d1 	. 
-	pop hl			;9667	e1 	. 
-	ld a,e			;9668	7b 	{ 
-	cp 098h		;9669	fe 98 	. . 
-	ret z			;966b	c8 	. 
-	ei			;966c	fb 	. 
-	ld b,004h		;966d	06 04 	. . 
+	ld a,COLOR_LIGHTGREEN_BLACK		;965e
+	call sub_967eh		            ;9660
+	add hl,de			            ;9663 Next row
+	djnz l965eh		                ;9664
+
+	pop de			;9666
+	pop hl			;9667
+	
+    ; Exit if finished
+    ld a,e			;9668
+	cp 152		    ;9669
+	ret z			;966b
+    
+    ; Wait for 4 retraces
+	ei			    ;966c
+	ld b, 4         ;966d
 l966fh:
-	halt			;966f	76 	v 
-	djnz l966fh		;9670	10 fd 	. . 
-	di			;9672	f3 	. 
-	add a,010h		;9673	c6 10 	. . 
+	halt			;966f
+	djnz l966fh		;9670
+	di			    ;9672
+
+    ; Move one column to the left
+	add a,16		;9673	c6 10 	. . 
 	ld e,a			;9675	5f 	_ 
 	push de			;9676	d5 	. 
-	ld de,0fff8h		;9677	11 f8 ff 	. . . 
-	add hl,de			;967a	19 	. 
+	ld de, -8		;9677	11 f8 ff 	. . . 
+	add hl,de		;967a	19 	. 
 	pop de			;967b	d1 	. 
 	jr l9631h		;967c	18 b3 	. . 
+
 sub_967eh:
 	ld c,008h		;967e	0e 08 	. . 
 l9680h:
