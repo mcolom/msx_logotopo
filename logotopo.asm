@@ -9,7 +9,8 @@
 
 	org	09470h
     
-    WRTVRM: equ 0x004d
+    WRTVRM: equ 0x4d
+    LDIRMV: equ 0x59
     
     NUM_COLS: equ 32
     NUM_ROWS: equ 24
@@ -18,6 +19,8 @@
     COLOR_RED_BLACK: equ 0x81
     COLOR_WHITE_BLACK: equ 0xf1
     COLOR_WHITE_TRANSPARENT: equ 0xf0
+    
+    VRAM_BUFFER: equ 0xc000
     
     ; Position in the color table of the "S" of the "SOFT" text
     COLOR_TABLE_POS_S: equ COLOR_TABLE + 0xf78
@@ -347,9 +350,9 @@ START:
 	call RESET_CGT	;95d6
 	call MOVE_T	;95d9
 	call MOVE_P	;95dc
-	call sub_9688h	;95df
+	call COPY_VRAM_TO_BUFFER	;95df
 	call FALL_O	;95e2
-	call sub_9688h	;95e5
+	call COPY_VRAM_TO_BUFFER	;95e5
 	call JUMP_O	;95e8
 	call ADD_COLOR_TO_TOPO	;95eb
 	call sub_9614h	;95ee
@@ -460,11 +463,20 @@ l9680h:
 	dec c			;9684	0d 	. 
 	jr nz,l9680h		;9685	20 f9 	  . 
 	ret			;9687	c9 	. 
-sub_9688h:
-	ld hl,00000h		;9688	21 00 00 	! . . 
-	ld de,0c000h		;968b	11 00 c0 	. . . 
-	ld bc,01800h		;968e	01 00 18 	. . . 
-	jp 00059h		;9691	c3 59 00 	. Y . 
+
+; ***************************************************************
+; * Copy the contents on the VRAM's patterns generator table to *
+; * the buffer                                                  *
+; ***************************************************************
+COPY_VRAM_TO_BUFFER:
+	ld hl, 00000h		;9688 Pattern generator table
+	ld de, VRAM_BUFFER	;968b Buffer
+	ld bc, 24*32*8		;968e 32 columns, 20 rows, 8 bytes per char
+    ; Block transfer to memory from VRAM
+    ; BC: Block length
+    ; DE: Start address of memory
+    ; HL: Start address of VRAM
+	jp LDIRMV   		;9691
 
 TABLE_1:
     dw 0x0, 0x82, 0x104, 0x186, 0x208, 0x28a, 0x30c, 0x38e
