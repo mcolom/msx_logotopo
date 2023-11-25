@@ -109,13 +109,13 @@ l94a9h:
 ; ***************
 MOVE_OBJECT:
 
-; [TEMP_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS + 2*P
+; [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]
 AUTOMODIF_INST_2:
 	ld hl,0000dh		;94b1 Parameter P is set outside, automodified code
 	add hl,hl			;94b4
 	ld de, TABLE_VRAM_PATTERNS		;94b5
 	add hl,de			;94b8
-	ld (TEMP_VRAM_PATTERNS),hl		;94b9 [TEMP_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]. Ex: 0x9704
+	ld (OBJ_VRAM_PATTERNS),hl		;94b9 [OBJ_VRAM_PATTERNS] <-- TABLE_VRAM_PATTERNS[2*P]. Ex: 0x9704
 
 ; Obtain the table of attributes of the object, according to its index Q
 AUTOMODIF_OBJECT_IDX:
@@ -133,7 +133,7 @@ AUTOMODIF_OBJECT_IDX:
 	ld d,(hl)			;94c6
     ; Ex: DE = 0x038E
 
-    ; Obtain pattern attributes
+    ; Obtain object attributes
 	; D2 = [D1] + TABLE_2 = TABLE_2[TABLE_1[2*Q]]
     ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
@@ -154,10 +154,11 @@ AUTOMODIF_OBJECT_IDX:
 	ld (AUTOMODIF_NUM_ROWS + 1),a	;94d1
 
     ; Store the address of the patterns
-	inc hl			    ;94d4
-	ld (TEMP_PATTERNS_ADDRESS),hl
-
-	ld ix,(TEMP_VRAM_PATTERNS)		;94d8 IX <-- [TEMP_VRAM_PATTERNS] = TABLE_VRAM_PATTERNS + 2*P. Ex: 0x9704
+    ; Copy from RAM's OBJ_RAM_PATTERNS...
+	inc hl			                ;94d4
+	ld (OBJ_RAM_PATTERNS),hl   ; Ex: 0x9AB8
+    ; ... to VRAM's OBJ_VRAM_PATTERNS
+	ld ix,(OBJ_VRAM_PATTERNS)		;94d8 IX <-- [OBJ_VRAM_PATTERNS] = TABLE_VRAM_PATTERNS + 2*P. Ex: 0x9704
 
 AUTOMODIF_NUM_ROWS:
 	ld c, 5     		;94dc Number of rows (chars) of the object
@@ -176,7 +177,7 @@ AUTOMODIF_VRAM_PATTERN_IDX:
 	ld hl,000b0h		;94e8
 	add hl,de			;94eb
     ;
-	ld de,(TEMP_PATTERNS_ADDRESS)		;94ec Ex: 0x9AB8
+	ld de,(OBJ_RAM_PATTERNS)		;94ec Ex: 0x9AB8
 
 ; Set the number of tile pattern lines that it needs to copy in that char row
 ; For example, if B=0x48 (72), then it's 72 / 8 = 9 tiles.
@@ -207,7 +208,7 @@ AUTOMODIF_CODE:
 	set 7,h		    ;94ff
 	djnz draw_tile_line	;9501
 
-	ld (TEMP_PATTERNS_ADDRESS),de		    ;9503
+	ld (OBJ_RAM_PATTERNS),de		    ;9503
 	dec c			        ;9507
 	jr nz,write_all_tiles	;9508
 	ret			            ;950a
@@ -491,9 +492,9 @@ TABLE_1:
     dw 0x202, 0x101, 0x0, 0xffff, 0x630, 0x530, 0x430, 0x438
     dw 0x338, 0x240, 0x248, 0x150, 0x258, 0x260, 0x368, 0x470
     dw 0x570, 0x670, 0xbff, 0xd0c, 0xb0c, 0xd0c, 0xff0e, 0x0
-TEMP_PATTERNS_ADDRESS:
+OBJ_RAM_PATTERNS:
 	ld c,0a5h		;96f4
-TEMP_VRAM_PATTERNS:
+OBJ_VRAM_PATTERNS:
 	ld (de),a		;96f6
 	sub a			;96f7
 
