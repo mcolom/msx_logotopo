@@ -128,7 +128,7 @@ AUTOMODIF_INST_1:
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
-    ; Ex: DE = 0x38E
+    ; Ex: DE = 0x038E
 
 	; D2 = [D1] + TABLE_2
     ld hl, TABLE_2		;94c7
@@ -201,7 +201,7 @@ ROTATE_SOFT:
     ; Write a NOP in the auto-modificable code
 	xor a			        ;9515
 	ld (AUTOMODIF_CODE),a	;9516
-	ld hl,l96b2h		    ;9519
+	ld hl,0x96b2		    ;9519
 l951ch:
 	ld a,(hl)			;951c	7e 	~ 
 	cp 0ffh		;951d	fe ff 	. . 
@@ -281,7 +281,7 @@ l958bh:
 JUMP_O:
 	ld a,00ah		;958e	3e 0a 	> . 
 	ld (AUTOMODIF_INST_1 + 1),a		;9590	32 bd 94 	2 . . 
-	ld hl,l96cch		;9593	21 cc 96 	! . . 
+	ld hl,0x96cc		;9593	21 cc 96 	! . . 
 l9596h:
 	ld a,(hl)			;9596	7e 	~ 
 	cp 0ffh		;9597	fe ff 	. . 
@@ -298,7 +298,7 @@ l9596h:
 l95abh:
 	jp MOVE_OBJECT		;95ab	c3 b1 94 	. . . 
 NICE_GLINT:
-	ld hl,l96e9h		;95ae	21 e9 96 	! . . 
+	ld hl,0x96e9		;95ae	21 e9 96 	! . . 
 l95b1h:
 	ld a,(hl)			;95b1	7e 	~ 
 	cp 0ffh		;95b2	fe ff 	. . 
@@ -449,129 +449,25 @@ sub_9688h:
 	ld bc,01800h		;968e	01 00 18 	. . . 
 	jp 00059h		;9691	c3 59 00 	. Y . 
 
-TABLE_1:
-	nop			;9694	00 	. 
-	nop			;9695	00 	. 
-	add a,d			;9696	82 	. 
-	nop			;9697	00 	. 
-	inc b			;9698	04 	. 
-	ld bc,00186h		;9699	01 86 01 	. . . 
-	ex af,af'			;969c	08 	. 
-	ld (bc),a			;969d	02 	. 
-	adc a,d			;969e	8a 	. 
-	ld (bc),a			;969f	02 	. 
-	inc c			;96a0	0c 	. 
-	inc bc			;96a1	03 	. 
-	adc a,(hl)			;96a2	8e 	. 
-	inc bc			;96a3	03 	. 
-	xor b			;96a4	a8 	. 
-	ld b,0eah		;96a5	06 ea 	. . 
-	rlca			;96a7	07 	. 
-	call z,0fe09h		;96a8	cc 09 fe 	. . . 
-	dec bc			;96ab	0b 	. 
-	ld a,b			;96ac	78 	x 
-	inc c			;96ad	0c 	. 
-	jp p,06c0ch		;96ae	f2 0c 6c 	. . l 
-	dec c			;96b1	0d 	. 
-l96b2h:
-	ld bc,00201h		;96b2	01 01 02 	. . . 
-	ld (bc),a			;96b5	02 	. 
-	inc bc			;96b6	03 	. 
-	inc bc			;96b7	03 	. 
-	inc b			;96b8	04 	. 
-	inc b			;96b9	04 	. 
-	dec b			;96ba	05 	. 
-	dec b			;96bb	05 	. 
-	ld b,006h		;96bc	06 06 	. . 
-	dec b			;96be	05 	. 
-	dec b			;96bf	05 	. 
-	inc b			;96c0	04 	. 
-	inc b			;96c1	04 	. 
-	inc bc			;96c2	03 	. 
-	inc bc			;96c3	03 	. 
-	ld (bc),a			;96c4	02 	. 
-	ld (bc),a			;96c5	02 	. 
-	ld bc,00001h		;96c6	01 01 00 	. . . 
-	nop			;96c9	00 	. 
-	rst 38h			;96ca	ff 	. 
-	rst 38h			;96cb	ff 	. 
-l96cch:
-	jr nc,l96d4h		;96cc	30 06 	0 . 
-	jr nc,$+7		;96ce	30 05 	0 . 
-	jr nc,l96d6h		;96d0	30 04 	0 . 
-	jr c,l96d8h		;96d2	38 04 	8 . 
-l96d4h:
-	jr c,l96d9h		;96d4	38 03 	8 . 
-l96d6h:
-	ld b,b			;96d6	40 	@ 
-	ld (bc),a			;96d7	02 	. 
-l96d8h:
-	ld c,b			;96d8	48 	H 
-l96d9h:
-	ld (bc),a			;96d9	02 	. 
-	ld d,b			;96da	50 	P 
-	ld bc,00258h		;96db	01 58 02 	. X . 
-	ld h,b			;96de	60 	` 
-	ld (bc),a			;96df	02 	. 
-	ld l,b			;96e0	68 	h 
-	inc bc			;96e1	03 	. 
-	ld (hl),b			;96e2	70 	p 
-	inc b			;96e3	04 	. 
-	ld (hl),b			;96e4	70 	p 
-	dec b			;96e5	05 	. 
-	ld (hl),b			;96e6	70 	p 
-	ld b,0ffh		;96e7	06 ff 	. . 
-l96e9h:
-	dec bc			;96e9	0b 	. 
-	inc c			;96ea	0c 	. 
-	dec c			;96eb	0d 	. 
-	inc c			;96ec	0c 	. 
-	dec bc			;96ed	0b 	. 
-	inc c			;96ee	0c 	. 
-	dec c			;96ef	0d 	. 
-	ld c,0ffh		;96f0	0e ff 	. . 
-	nop			;96f2	00 	. 
-	nop			;96f3	00 	. 
+TABLE_1:; 7: 0x038E
+    
+    dw 0x0, 0x82, 0x104, 0x186, 0x208, 0x28a, 0x30c, 0x38e
+    dw 0x6a8, 0x7ea, 0x9cc, 0xbfe, 0xc78, 0xcf2, 0xd6c, 0x0101
+    dw 0x202, 0x303, 0x404, 0x505, 0x606, 0x505, 0x404, 0x303
+    dw 0x202, 0x101, 0x0, 0xffff, 0x630, 0x530, 0x430, 0x438
+    dw 0x338, 0x240, 0x248, 0x150, 0x258, 0x260, 0x368, 0x470
+    dw 0x570, 0x670, 0xbff, 0xd0c, 0xb0c, 0xd0c, 0xff0e, 0x0
 STORE_3:
-	ld c,0a5h		;96f4	0e a5 	. . 
+	ld c,0a5h		;96f4
 STORE_2:
-	ld (de),a			;96f6	12 	. 
-	sub a			;96f7	97 	. 
+	ld (de),a		;96f6
+	sub a			;96f7
 
 TABLE_3:
-	nop			;96f8	00 	. 
-	ret nz			;96f9	c0 	. 
-	nop			;96fa	00 	. 
-	pop bc			;96fb	c1 	. 
-	nop			;96fc	00 	. 
-	jp nz,0c300h		;96fd	c2 00 c3 	. . . 
-	nop			;9700	00 	. 
-	call nz,0c500h		;9701	c4 00 c5 	. . . 
-	nop			;9704	00 	. 
-	add a,000h		;9705	c6 00 	. . 
-	rst 0			;9707	c7 	. 
-	nop			;9708	00 	. 
-	ret z			;9709	c8 	. 
-	nop			;970a	00 	. 
-	ret			;970b	c9 	. 
-	nop			;970c	00 	. 
-	jp z,0cb00h		;970d	ca 00 cb 	. . . 
-	nop			;9710	00 	. 
-	call z,0cd00h		;9711	cc 00 cd 	. . . 
-	nop			;9714	00 	. 
-	adc a,000h		;9715	ce 00 	. . 
-	rst 8			;9717	cf 	. 
-	nop			;9718	00 	. 
-	ret nc			;9719	d0 	. 
-	nop			;971a	00 	. 
-	pop de			;971b	d1 	. 
-	nop			;971c	00 	. 
-	jp nc,0d300h		;971d	d2 00 d3 	. . . 
-	nop			;9720	00 	. 
-	call nc,0d500h		;9721	d4 00 d5 	. . . 
-	nop			;9724	00 	. 
-	sub 000h		;9725	d6 00 	. . 
-	rst 10h			;9727	d7 	. 
+    dw 0xc000, 0xc100, 0xc200, 0xc300, 0xc400, 0xc500, 0xc600, 0xc700
+    dw 0xc800, 0xc900, 0xca00, 0xcb00, 0xcc00, 0xcd00, 0xce00, 0xcf00
+    dw 0xd000, 0xd100, 0xd200, 0xd300, 0xd400, 0xd500, 0xd600, 0xd700    
+    
 
 TABLE_2:
 	ld b,b			;9728	40 	@ 
