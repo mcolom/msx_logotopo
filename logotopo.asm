@@ -114,8 +114,8 @@ AUTOMODIF_INST_2:
 	add hl,de			;94b8
 	ld (STORE_2),hl		;94b9 [STORE_2] <-- TABLE_3 + 2*P. Ex: 0x9704
 
-; This seems to be related to which object it moves
-AUTOMODIF_INST_1:
+; Obtain the table of attributes of the object, according to its index Q
+AUTOMODIF_OBJECT_IDX:
     ; D1 = HL <-- TABLE_1 + 2*Q
 	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
                         ; Ex: HL=7
@@ -124,7 +124,7 @@ AUTOMODIF_INST_1:
 	ld de, TABLE_1		;94c0
 	add hl,de			;94c3 Ex: HL = 0x96A2
 
-    ; DE <-- [D1]
+    ; DE <-- [D1] = TABLE_1[2*Q]
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
@@ -220,7 +220,7 @@ l951ch:
 	ld a,(hl)			;951c	7e 	~ 
 	cp 0ffh		;951d	fe ff 	. . 
 	ret z			;951f	c8 	. 
-	ld (AUTOMODIF_INST_1 + 1),a		;9520	32 bd 94 	2 . . 
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9520	32 bd 94 	2 . . 
 	push hl			;9523	e5 	. 
 	ei			;9524	fb 	. 
 	ld b,002h		;9525	06 02 	. . 
@@ -235,7 +235,7 @@ l9527h:
 
 MOVE_T:
 	ld a, 7	    	                ;9532
-	ld (AUTOMODIF_INST_1 + 1),a		;9534
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9534
 
 	ld a, 6 		                ;9537
 	ld (AUTOMODIF_INST_2 + 1),a		;9539
@@ -254,7 +254,7 @@ l953eh:
 
 MOVE_P:
 	ld a,009h		;954d	3e 09 	> . 
-	ld (AUTOMODIF_INST_1 + 1),a		;954f	32 bd 94 	2 . . 
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;954f	32 bd 94 	2 . . 
 	ld a,007h		;9552	3e 07 	> . 
 	ld (AUTOMODIF_INST_2 + 1),a		;9554	32 b2 94 	2 . . 
 	ld a,090h		;9557	3e 90 	> . 
@@ -277,7 +277,7 @@ FALL_O:
 	ld (AUTOMODIF_CODE),a	;956d
 
 	ld a,008h		;9570	3e 08 	> . 
-	ld (AUTOMODIF_INST_1 + 1),a		;9572	32 bd 94 	2 . . 
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9572	32 bd 94 	2 . . 
 	ld a,038h		;9575	3e 38 	> 8 
 	ld (AUTOMODIF_INST_3 + 1),a		;9577	32 e9 94 	2 . . 
 	ld a,000h		;957a	3e 00 	> . 
@@ -294,7 +294,7 @@ l958bh:
 	jp MOVE_OBJECT		;958b	c3 b1 94 	. . . 
 JUMP_O:
 	ld a,00ah		;958e	3e 0a 	> . 
-	ld (AUTOMODIF_INST_1 + 1),a		;9590	32 bd 94 	2 . . 
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;9590	32 bd 94 	2 . . 
 	ld hl,0x96cc		;9593	21 cc 96 	! . . 
 l9596h:
 	ld a,(hl)			;9596	7e 	~ 
@@ -318,7 +318,7 @@ l95b1h:
 	cp 0ffh		;95b2	fe ff 	. . 
 	ret z			;95b4	c8 	. 
 	push hl			;95b5	e5 	. 
-	ld (AUTOMODIF_INST_1 + 1),a		;95b6	32 bd 94 	2 . . 
+	ld (AUTOMODIF_OBJECT_IDX + 1),a		;95b6	32 bd 94 	2 . . 
 	ld a,0b0h		;95b9	3e b0 	> . 
 	ld (AUTOMODIF_INST_3 + 1),a		;95bb	32 e9 94 	2 . . 
 	ld a,00dh		;95be	3e 0d 	> . 
