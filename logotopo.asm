@@ -112,70 +112,85 @@ AUTOMODIF_INST_2:
 	add hl,hl			;94b4
 	ld de, TABLE_3		;94b5
 	add hl,de			;94b8
-	ld (STORE_2),hl		;94b9
+	ld (STORE_2),hl		;94b9 [STORE_2] <-- TABLE_3 + 2*P. Ex: 0x9704
 
 ; This seems to be related to which object it moves
 AUTOMODIF_INST_1:
-    ; HL <-- TABLE_1 + 2*Q
+    ; D1 = HL <-- TABLE_1 + 2*Q
 	ld hl,0000eh		;94bc Parameter Q is set outside, automodified code
+                        ; Ex: HL=7
 
 	add hl,hl			;94bf
 	ld de, TABLE_1		;94c0
-	add hl,de			;94c3
+	add hl,de			;94c3 Ex: HL = 0x96A2
 
-    ; DE <-- [TABLE_1 + 2*Q]
+    ; DE = HL <-- [D1]
 	ld e,(hl)			;94c4
 	inc hl			    ;94c5
 	ld d,(hl)			;94c6
+    ; Ex: DE = 0x38E
 
-	; HL = [TABLE_1 + 2*Q] + TABLE_2
+	; D2 = HL <-- [D1] + TABLE_2
     ld hl, TABLE_2		;94c7
 	add hl,de			;94ca
+    ; Ex: HL = 0x9AB6
     
-    ; A = [[TABLE_1 + 2*Q] + TABLE_2]
-	ld a,(hl)			;94cb
-	ld (094f1h),a		;94cc
+    ; A = [D2]
+	ld a,(hl)			;94cb Ex: A=48
+	ld (AUTOMODIF_INST_4 + 1),a		;94cc
 
-	inc hl			;94cf	23 	# 
-	ld a,(hl)			;94d0	7e 	~ 
-	ld (094ddh),a		;94d1	32 dd 94 	2 . . 
+	inc hl			    ;94cf
+	ld a,(hl)			;94d0 Ex: A=0xB
+	ld (AUTOMODIF_INST_5 + 1),a		;94d1
 
 	inc hl			;94d4	23 	# 
-	ld (l96f4h),hl		;94d5	22 f4 96 	" . . 
+	ld (STORE_3),hl		;94d5	22 f4 96 	" . . 
 
-	ld ix,(STORE_2)		;94d8	dd 2a f6 96 	. * . . 
-	ld c,005h		;94dc	0e 05 	. . 
+	ld ix,(STORE_2)		;94d8 IX <-- [STORE_2] = TABLE_3 + 2*P. Ex: 0x9704
+AUTOMODIF_INST_5:
+	ld c, 5     		;94dc
 
 
-l94deh:
-	ld e,(ix+000h)		;94de	dd 5e 00 	. ^ . 
-	inc ix		;94e1	dd 23 	. # 
-	ld d,(ix+000h)		;94e3	dd 56 00 	. V . 
-	inc ix		;94e6	dd 23 	. # 
+write_all_tiles:
+	ld e,(ix+000h)		;94de
+	inc ix		        ;94e1
+	ld d,(ix+000h)		;94e3
+	inc ix		        ;94e6
+    ; Ex: DE = 0xC600
 
 AUTOMODIF_INST_3:
-	ld hl,000b0h		;94e8	21 b0 00 	! . . 
-	add hl,de			;94eb	19 	. 
-	ld de,(l96f4h)		;94ec	ed 5b f4 96 	. [ . . 
-	ld b,018h		    ;94f0	06 18 	. . 
-l94f2h:
-	ld a,(de)			;94f2	1a 	. 
+	ld hl,000b0h		;94e8
+	add hl,de			;94eb
+	ld de,(STORE_3)		;94ec Ex: 0x9AB8
+AUTOMODIF_INST_4:
+	ld b,018h		    ;94f0
 
+; Draw a line of the object
+draw_tile_line:
+	ld a,(de)			;94f2	1a 	. 
 ; It can be a 0: NOP or a 0xB6: OR (HL)
 AUTOMODIF_CODE:
 	nop			    ;94f3
-	inc de			;94f4	13 	. 
-	res 7,h		;94f5	cb bc 	. . 
-	res 6,h		;94f7	cb b4 	. . 
-	call WRTVRM		;94f9	cd 4d 00 	. M . 
-	inc hl			;94fc	23 	# 
-	set 6,h		;94fd	cb f4 	. . 
-	set 7,h		;94ff	cb fc 	. . 
-	djnz l94f2h		;9501	10 ef 	. . 
-	ld (l96f4h),de		;9503	ed 53 f4 96 	. S . . 
-	dec c			;9507	0d 	. 
-	jr nz,l94deh		;9508	20 d4 	  . 
-	ret			;950a	c9 	. 
+    ; Ex: DE = 0x9AB9
+    ; Ex: HL = 0xC600
+	inc de			;94f4
+	res 7,h		    ;94f5
+	res 6,h		    ;94f7
+    ; Ex: HL = 0x600
+    
+    ; Function: Writes data in VRAM
+    ; Input   : HL - Address
+    ;           A  - Value
+	call WRTVRM		;94f9
+	inc hl			;94fc
+	set 6,h		    ;94fd
+	set 7,h		    ;94ff
+	djnz draw_tile_line	;9501
+
+	ld (STORE_3),de		    ;9503
+	dec c			        ;9507
+	jr nz,write_all_tiles	;9508
+	ret			            ;950a
 
 ROTATE_SOFT:
 	ld a,00fh		;950b	3e 0f 	> . 
@@ -517,7 +532,7 @@ l96e9h:
 	ld c,0ffh		;96f0	0e ff 	. . 
 	nop			;96f2	00 	. 
 	nop			;96f3	00 	. 
-l96f4h:
+STORE_3:
 	ld c,0a5h		;96f4	0e a5 	. . 
 STORE_2:
 	ld (de),a			;96f6	12 	. 
