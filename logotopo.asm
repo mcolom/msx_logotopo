@@ -1,3 +1,7 @@
+; Disassembly of the Topo Soft iconic animation.
+; By Miguel Colom, 2023.
+
+; Checks:
 ; z80dasm 1.1.5
 ; command line: z80dasm -g0x9470 -l -t TOPO
 
