@@ -1,4 +1,6 @@
-; Disassembly of the Topo Soft iconic animation.
+; Disassembly of the Topo Soft iconic animation, 1st version.
+; MSX version
+;
 ; By Miguel Colom, 2023.
 
 ; Checks:
